@@ -4,9 +4,15 @@ Personal knowledge playground leveraging GenAI &amp; RAG.
 ## Development Guide
 
 
-### Start up the backend app
+### Install the dependencies 
 ```shell
 poetry install
+# Copy the env example or create your own one
+cp .env.example .env
+```
+
+### Start up the backend app
+```
 poetry run uvicorn app.main:app --reload
 ```
 
