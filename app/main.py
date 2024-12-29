@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from pydantic_settings import BaseSettings
 from uvicorn.config import LOGGING_CONFIG
 from typing import List
@@ -15,6 +16,7 @@ class Settings(BaseSettings):
     server_port: int
     log_level: str = "INFO"
     log_dir: str = "logs"
+    static_dist_path: str = "ui/build"
 
     class Config:
         # TODO: Load the env file path from an environment variable.
@@ -23,12 +25,12 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-"""Get the default logging configuration from uvicorn and update it."""
+# Get the default logging configuration from uvicorn and update it.
 LOGGING_CONFIG["loggers"][__name__] = {
     "handlers": ["default"],
     "level": "INFO",
 }
-"""Hide the access logs from the console."""
+# Hide the access logs from the console.
 LOGGING_CONFIG["loggers"]["uvicorn.access"] = {
     "handlers": ["default"],
     "level": "WARNING",
@@ -74,21 +76,20 @@ async def log_requests(request, call_next):
     return response
 
 
-@app.get("/")
+@app.get("/", response_class=JSONResponse, status_code=404)
 def read_root():
-    return {"Hello!": "Welcome to the Brainsmith!"}
+    return {"detail": "Not Found. Please refer to the API documentation for available endpoints."}
 
 
-# TODO: Display the home page once the frontend is ready.
-# @app.get("/")
-# def root_site():
-#     return StaticFiles(directory=settings.static_dist_path, html=True)
+# Export the UI build as static files, served under /ui path.
+app.mount("/ui", StaticFiles(directory=settings.static_dist_path, html=True), name="ui")
 
 
+# TODO: Placeholder api, add real apis below
 @app.get("/zones", response_model=List[str])
 def get_zones():
-    # TODO: This is a placeholder. Replace with actual logic to get zone names.
     return ["Zone1", "Zone2", "Zone3"]
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=settings.server_port)

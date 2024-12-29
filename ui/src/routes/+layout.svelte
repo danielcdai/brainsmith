@@ -21,7 +21,7 @@ let isDark: Boolean = true;
 </script>
 
 <svelte:head>
-	<title>Knowledge-GPT</title>
+	<title>Blacksmith</title>
 	<link id="theme-style" rel="stylesheet" type="text/css" href="/smui.css" />
 </svelte:head>
 
