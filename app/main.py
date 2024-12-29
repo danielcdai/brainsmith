@@ -5,6 +5,9 @@ from pydantic_settings import BaseSettings
 from uvicorn.config import LOGGING_CONFIG
 from typing import List
 from datetime import datetime
+from fastapi import UploadFile, File, Form
+from typing import List
+from app.retrieval.loader import BrainSmithLoader
 import logging
 import logging.config
 import uvicorn
@@ -77,7 +80,7 @@ async def log_requests(request, call_next):
 
 
 @app.get("/", response_class=JSONResponse, status_code=404)
-def read_root():
+async def read_root():
     return {"detail": "Not Found. Please refer to the API documentation for available endpoints."}
 
 
@@ -85,10 +88,26 @@ def read_root():
 app.mount("/ui", StaticFiles(directory=settings.static_dist_path, html=True), name="ui")
 
 
-# TODO: Placeholder api, add real apis below
-@app.get("/zones", response_model=List[str])
-def get_zones():
-    return ["Zone1", "Zone2", "Zone3"]
+@app.post("/chunk", response_model=List[str])
+async def get_chunks_from_file(
+    file: UploadFile = File(...),
+    chunk_size: int = Form(1000),
+    chunk_overlap: int = Form(50)
+):
+    content = await file.read()
+    # Save the uploaded file to the system temporary directory
+    tmp_dir = os.path.join(os.path.abspath(os.sep), "tmp")
+    if not os.path.exists(tmp_dir):
+        os.makedirs(tmp_dir)
+    tmp_file_path = os.path.join(tmp_dir, file.filename)
+    with open(tmp_file_path, "wb") as f:
+        f.write(content)
+
+    loader = BrainSmithLoader(file_path=tmp_file_path) 
+    documents = loader.load(load_type="text", chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    chunks = [doc.page_content for doc in documents]
+
+    return {"count": len(chunks), "chunks": chunks}
 
 
 if __name__ == "__main__":

@@ -11,7 +11,18 @@ python = "3.11.11"
 fastapi = "^0.115.6"
 uvicorn = "^0.34.0"
 pydantic-settings = "^2.7.0"
+langchain-text-splitters = "^0.3.4"
 
+
+[[tool.poetry.source]]
+name = "tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+priority = "primary"
+
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
 
 [build-system]
 requires = ["poetry-core"]

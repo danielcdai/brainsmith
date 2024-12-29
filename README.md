@@ -20,3 +20,8 @@ poetry run uvicorn app.main:app --reload
 ```shell
 poetry add <package_name>
 ```
+
+### Run the unit tests via pytest (with output print)
+```shell
+poetry run pytest -s
+```
