@@ -25,14 +25,15 @@ class BrainSmithLoader(BaseModel):
             chunk_overlap=chunk_overlap
         )
         return text_splitter.create_documents([uploaded_file])
-    
 
+    
     def load(
             self,
             load_type: Literal["text"] = "text", 
             chunk_size: int = 1000, 
             chunk_overlap: int = 200
         ) -> List[Document]:
+        # TODO: Add support for other load types like PDF, CSV, Markdown, Code, Semantic, etc.
         match load_type:
             case "text":
                 return self._text_load(chunk_size=chunk_size, chunk_overlap=chunk_overlap)

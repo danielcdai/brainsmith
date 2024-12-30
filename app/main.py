@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from pydantic_settings import BaseSettings
@@ -8,10 +8,19 @@ from datetime import datetime
 from fastapi import UploadFile, File, Form
 from typing import List
 from app.retrieval.loader import BrainSmithLoader
+from app.retrieval.embedding import (
+    TaskStatus,
+    start_embedding_task, 
+    initialize_embedding_task,
+    get_task_status,
+    is_task_id_in_tasks
+)
 import logging
 import logging.config
 import uvicorn
 import os
+import uuid
+import threading
 
 
 class Settings(BaseSettings):
@@ -105,10 +114,45 @@ async def get_chunks_from_file(
 
     loader = BrainSmithLoader(file_path=tmp_file_path) 
     documents = loader.load(load_type="text", chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    chunks = [doc.page_content for doc in documents]
+    chunks = [{"length": len(doc.page_content), "content": doc.page_content} for doc in documents]
 
-    return {"count": len(chunks), "chunks": chunks}
+    return JSONResponse(content={"count": len(chunks), "chunks": chunks})
 
+
+@app.post("/embedding/start")
+def start_embedding():
+    """
+    POST endpoint to start the long-running task.
+    Creates a unique task_id, starts the thread, and returns the task_id.
+    """
+    task_id = str(uuid.uuid4())
+    # Initialize this task's state in the dictionary
+    initialize_embedding_task(task_id)
+    # Create and start the thread
+    thread = threading.Thread(
+        target=start_embedding_task, 
+        # args=(task_id,), 
+        daemon=True
+    )
+    thread.start()
+
+    # Return the task_id to the client
+    return {"task_id": task_id}
+
+@app.get("/embedding/{task_id}", response_model=TaskStatus)
+def get_progress(task_id: str):
+    """
+    GET endpoint to retrieve the current progress and status of a task.
+    """
+    if is_task_id_in_tasks(task_id):
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task_info = get_task_status(task_id)
+    return TaskStatus(
+        task_id=task_id,
+        progress=task_info["progress"],
+        status=task_info["status"]
+    )
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=settings.server_port)
