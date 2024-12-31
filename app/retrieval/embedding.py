@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 import time
-import uuid
 
 
 # TODO: Encapsulate the whole embedding task management in a class.
@@ -15,16 +14,11 @@ class TaskStatus(BaseModel):
     status: str
 
 
-def start_embedding_task():
+def start_embedding_task(task_id: str) -> str:
     """
     This function simulates a long running embedding task, e.g. 5-10 min.
     Updates TASKS[task_id]["progress"] along the way.
     """
-    task_id = str(uuid.uuid4())
-    TASKS[task_id] = {
-        "progress": 0.0,
-        "status": "initialized"
-    }
     try:
         TASKS[task_id]["status"] = "running"
         for i in range(100):

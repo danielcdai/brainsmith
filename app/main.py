@@ -119,7 +119,7 @@ async def get_chunks_from_file(
     return JSONResponse(content={"count": len(chunks), "chunks": chunks})
 
 
-@app.post("/embedding/start")
+@app.post("/embedding/start", status_code=202)
 def start_embedding():
     """
     POST endpoint to start the long-running task.
@@ -131,27 +131,34 @@ def start_embedding():
     # Create and start the thread
     thread = threading.Thread(
         target=start_embedding_task, 
-        # args=(task_id,), 
+        args=(task_id,), 
         daemon=True
     )
     thread.start()
 
-    # Return the task_id to the client
-    return {"task_id": task_id}
+    check_status_url = f"/embedding/{task_id}"
+    return JSONResponse(
+        status_code=202,
+        content={
+            "message": "Embedding task started successfully.",
+            "task_id": task_id,
+            "check_status_url": check_status_url
+        }
+    )
 
 @app.get("/embedding/{task_id}", response_model=TaskStatus)
 def get_progress(task_id: str):
     """
     GET endpoint to retrieve the current progress and status of a task.
     """
-    if is_task_id_in_tasks(task_id):
+    if not is_task_id_in_tasks(task_id):
         raise HTTPException(status_code=404, detail="Task not found")
 
     task_info = get_task_status(task_id)
     return TaskStatus(
         task_id=task_id,
-        progress=task_info["progress"],
-        status=task_info["status"]
+        progress=task_info.progress,
+        status=task_info.status
     )
 
 if __name__ == "__main__":
