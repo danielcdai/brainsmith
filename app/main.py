@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from pydantic_settings import BaseSettings
@@ -10,6 +10,7 @@ from typing import List
 from app.retrieval.loader import BrainSmithLoader
 from app.retrieval.embedding import (
     TaskStatus,
+    EmbeddingRequest,
     start_embedding_task, 
     initialize_embedding_task,
     get_task_status,
@@ -101,7 +102,8 @@ app.mount("/ui", StaticFiles(directory=settings.static_dist_path, html=True), na
 async def get_chunks_from_file(
     file: UploadFile = File(...),
     chunk_size: int = Form(1000),
-    chunk_overlap: int = Form(50)
+    chunk_overlap: int = Form(50),
+    content_only: bool = Form(False)
 ):
     content = await file.read()
     # Save the uploaded file to the system temporary directory
@@ -115,12 +117,14 @@ async def get_chunks_from_file(
     loader = BrainSmithLoader(file_path=tmp_file_path) 
     documents = loader.load(load_type="text", chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     chunks = [{"length": len(doc.page_content), "content": doc.page_content} for doc in documents]
-
+    # More concise response for later embedding tasks
+    if content_only:
+        return JSONResponse(content=[doc.page_content for doc in documents])
     return JSONResponse(content={"count": len(chunks), "chunks": chunks})
 
 
 @app.post("/embedding/start", status_code=202)
-def start_embedding():
+def start_embedding(request: EmbeddingRequest = Body(...)):
     """
     POST endpoint to start the long-running task.
     Creates a unique task_id, starts the thread, and returns the task_id.
@@ -131,7 +135,7 @@ def start_embedding():
     # Create and start the thread
     thread = threading.Thread(
         target=start_embedding_task, 
-        args=(task_id,), 
+        args=(request.name, task_id, request.texts),
         daemon=True
     )
     thread.start()
@@ -145,6 +149,7 @@ def start_embedding():
             "check_status_url": check_status_url
         }
     )
+
 
 @app.get("/embedding/{task_id}", response_model=TaskStatus)
 def get_progress(task_id: str):
@@ -161,5 +166,7 @@ def get_progress(task_id: str):
         status=task_info.status
     )
 
+
 if __name__ == "__main__":
+    # Not useful if using uvicorn to run the server.
     uvicorn.run(app, host="0.0.0.0", port=settings.server_port)
