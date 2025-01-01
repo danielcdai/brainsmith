@@ -1,6 +1,17 @@
 from pydantic import BaseModel
+from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from typing import List
+from app.config import settings
+import logging
+
+
+# Redirect the chroma logs
+logging.basicConfig(
+    filename=f'{settings.log_dir}/chroma_warnings.log',
+    level=logging.WARNING,
+    format='%(levelname)s:%(name)s:%(message)s'
+)
 
 
 EMBEDDING_TASKS = {}
@@ -32,9 +43,10 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
     """
     try:
         EMBEDDING_TASKS[task_id]["status"] = "running"
-        EMBEDDING_TASKS[task_id]["progress"] = 0.5
+        EMBEDDING_TASKS[task_id]["progress"] = 0.2
 
         from langchain_ollama import OllamaEmbeddings
+        import hashlib
         embeddings = OllamaEmbeddings(
             # TODO: Make both url and model configurable
             base_url="http://localhost:11434",
@@ -45,9 +57,21 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
             collection_name=name,
             embedding_function=embeddings,
             # TODO: Make persist_directory configurable
-            persist_directory="./embedding_results",
+            persist_directory=settings.embeddings_dir,
         )
-        vector_store.add_texts(texts)
+        total_texts = len(texts)
+        for i, text in enumerate(texts):
+            text_id = hashlib.md5(text.encode()).hexdigest()
+            document = Document(
+                id=text_id, 
+                metadata={"source": "upload"}, 
+                page_content=text)
+            # if len(vector_store.get(ids=[text_id])) == 0:
+            #     vector_store.add_documents(documents=[document])
+            # else:
+            #     logging.info(f"Document with id {text_id} already exists in the collection, update it...")
+            vector_store.update_document(document_id=text_id, document=document)
+            EMBEDDING_TASKS[task_id]["progress"] = 0.2 + (i + 1) / total_texts * 0.8 
         
         # Mark as completed
         EMBEDDING_TASKS[task_id]["progress"] = 1.0
@@ -55,9 +79,6 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
     except Exception as e:
         EMBEDDING_TASKS[task_id]["status"] = "failed"
         raise e
-    
-    # TODO: Cancel return statement if not needed
-    return task_id
 
 
 def initialize_embedding_task(task_id: str):

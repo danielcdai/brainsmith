@@ -1,13 +1,14 @@
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
-from pydantic_settings import BaseSettings
 from uvicorn.config import LOGGING_CONFIG
 from typing import List
 from datetime import datetime
 from fastapi import UploadFile, File, Form
 from typing import List
 from app.retrieval.loader import BrainSmithLoader
+from app.retrieval.search import SearchRequest, search_by_collection
+from app.config import settings
 from app.retrieval.embedding import (
     TaskStatus,
     EmbeddingRequest,
@@ -22,20 +23,6 @@ import uvicorn
 import os
 import uuid
 import threading
-
-
-class Settings(BaseSettings):
-    """Environment settings for the application."""
-    server_port: int
-    log_level: str = "INFO"
-    log_dir: str = "logs"
-    static_dist_path: str = "ui/build"
-
-    class Config:
-        # TODO: Load the env file path from an environment variable.
-        env_file = ".env"
-
-settings = Settings()
 
 
 # Get the default logging configuration from uvicorn and update it.
@@ -116,11 +103,11 @@ async def get_chunks_from_file(
 
     loader = BrainSmithLoader(file_path=tmp_file_path) 
     documents = loader.load(load_type="text", chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    chunks = [{"length": len(doc.page_content), "content": doc.page_content} for doc in documents]
-    # More concise response for later embedding tasks
     if content_only:
+        # Concise response for later embedding tasks
         return JSONResponse(content=[doc.page_content for doc in documents])
-    return JSONResponse(content={"count": len(chunks), "chunks": chunks})
+    chunks = [{"length": len(doc.page_content), "content": doc.page_content} for doc in documents]
+    return JSONResponse(content={"total": len(chunks), "chunks": chunks})
 
 
 @app.post("/embedding/start", status_code=202)
@@ -165,6 +152,26 @@ def get_progress(task_id: str):
         progress=task_info.progress,
         status=task_info.status
     )
+
+
+@app.post("/search", response_model=List[str])
+async def search(request: SearchRequest):
+    """
+    POST endpoint to perform a search based on the provided parameters.
+    """
+    # Perform the search using the provided parameters
+    docs = search_by_collection(
+        collection_name=request.name, 
+        query=request.query, 
+        top_k=request.top_k, 
+        search_type=request.search_type,
+        **request.opts
+    )
+    if request.content_only:
+        # Concise response for later embedding tasks
+        return JSONResponse(content=[doc.page_content for doc in docs])
+    contents = [{"length": len(doc.page_content), "content": doc.page_content} for doc in docs]
+    return JSONResponse(content={"total": len(contents), "contents": contents})
 
 
 if __name__ == "__main__":
