@@ -66,11 +66,8 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
                 id=text_id, 
                 metadata={"source": "upload"}, 
                 page_content=text)
-            # if len(vector_store.get(ids=[text_id])) == 0:
-            #     vector_store.add_documents(documents=[document])
-            # else:
-            #     logging.info(f"Document with id {text_id} already exists in the collection, update it...")
-            vector_store.update_document(document_id=text_id, document=document)
+            # Warning: use add_documents instead of update_documents to avoid empty search results
+            vector_store.add_documents(documents=[document])
             EMBEDDING_TASKS[task_id]["progress"] = 0.2 + (i + 1) / total_texts * 0.8 
         
         # Mark as completed
