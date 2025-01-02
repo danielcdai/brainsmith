@@ -34,7 +34,7 @@ def search_by_collection(
     vector_store = Chroma(
         collection_name=collection_name,
         embedding_function=embeddings,
-        persist_directory=settings.embeddings_dir,  # Where to save data locally, remove if not necessary
+        persist_directory=settings.embeddings_dir,
     )
     if search_type == "similarity":
         return vector_store.similarity_search(

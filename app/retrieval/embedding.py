@@ -56,7 +56,6 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
         vector_store = Chroma(
             collection_name=name,
             embedding_function=embeddings,
-            # TODO: Make persist_directory configurable
             persist_directory=settings.embeddings_dir,
         )
         total_texts = len(texts)

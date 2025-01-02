@@ -1,9 +1,6 @@
 import pytest
-import os
-import shutil
-from app.config import settings
-from app.retrieval.search import search_by_collection
 import random
+from app.retrieval.search import search_by_collection
 from app.retrieval.embedding import (
     start_embedding_task,
     initialize_embedding_task
@@ -29,10 +26,6 @@ def setup_embedding_task():
     initialize_embedding_task(task_id)
     yield task_id, name, texts
 
-    # Cleanup
-    if os.path.exists(settings.embeddings_dir):
-        shutil.rmtree(settings.embeddings_dir)
-
 
 def test_start_embedding_task_and_search(setup_embedding_task):
     task_id, name, texts = setup_embedding_task
@@ -51,3 +44,12 @@ def test_start_embedding_task_and_search(setup_embedding_task):
     assert len(mmr_results) == 3
     assert results != mmr_results
 
+
+@pytest.fixture(scope="module", autouse=True)
+def cleanup_embedding_dir():
+    yield
+    from app.config import settings
+    import shutil
+    import os
+    if os.path.exists(settings.embeddings_dir):
+        shutil.rmtree(settings.embeddings_dir)
