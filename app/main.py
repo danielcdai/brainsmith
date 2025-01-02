@@ -59,6 +59,7 @@ print(
                                                     
 
 Personal knowledge playground powered by GenAI & RAG
+LLM Provider: {settings.provider}
 https://github.com/danielcdai/brainsmith
 """
 )

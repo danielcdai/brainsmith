@@ -4,6 +4,7 @@ from langchain_chroma import Chroma
 from typing import List
 from app.config import settings
 import logging
+import uuid
 
 
 # Redirect the chroma logs
@@ -43,31 +44,48 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
     """
     try:
         EMBEDDING_TASKS[task_id]["status"] = "running"
-        EMBEDDING_TASKS[task_id]["progress"] = 0.2
-
-        from langchain_ollama import OllamaEmbeddings
-        import hashlib
-        embeddings = OllamaEmbeddings(
-            # TODO: Make both url and model configurable
-            base_url="http://localhost:11434",
-            model="nomic-embed-text:latest",
-        )
-        # TODO: Track embedding progress
-        vector_store = Chroma(
-            collection_name=name,
-            embedding_function=embeddings,
-            persist_directory=settings.embeddings_dir,
-        )
-        total_texts = len(texts)
-        for i, text in enumerate(texts):
-            text_id = hashlib.md5(text.encode()).hexdigest()
-            document = Document(
-                id=text_id, 
-                metadata={"source": "upload"}, 
-                page_content=text)
-            # Warning: use add_documents instead of update_documents to avoid empty search results
-            vector_store.add_documents(documents=[document])
-            EMBEDDING_TASKS[task_id]["progress"] = 0.2 + (i + 1) / total_texts * 0.8 
+        embeddings = None
+        if settings.provider == "openai":
+            if not settings.openai_api_key:
+                raise ValueError("OpenAI API key not found in environment variables.")
+            from langchain_openai import OpenAIEmbeddings
+            embeddings = OpenAIEmbeddings(
+                api_key=settings.openai_api_key,
+                # TODO: Make openai embedding model configurable, hard-coded for now
+                dimensions=768,
+                model="text-embedding-3-large",
+            )
+            EMBEDDING_TASKS[task_id]["progress"] = 0.50
+            vector_store = Chroma(
+                collection_name=name,
+                embedding_function=embeddings,
+                persist_directory=settings.embeddings_dir,
+            )
+            uuids = [str(uuid.uuid4()) for _ in range(len(texts))]
+            metadatas = [{"source": "upload"} for _ in range(len(texts))]
+            vector_store.add_texts(texts=texts, metadatas=metadatas, ids=uuids)
+        elif settings.provider == "ollama":
+            from langchain_ollama import OllamaEmbeddings
+            embeddings = OllamaEmbeddings(
+                base_url=settings.ollama_base_url,
+                # TODO: Make ollama embedding model configurable, hard-coded for now
+                model="nomic-embed-text:latest",
+            )
+            vector_store = Chroma(
+                collection_name=name,
+                embedding_function=embeddings,
+                persist_directory=settings.embeddings_dir,
+            )
+            total_texts = len(texts)
+            for i, text in enumerate(texts):
+                text_id = str(uuid.uuid4())
+                document = Document(
+                    id=text_id, 
+                    metadata={"source": "upload"}, 
+                    page_content=text)
+                # Warning: use add_documents instead of update_documents to avoid empty search results
+                vector_store.add_documents(documents=[document])
+                EMBEDDING_TASKS[task_id]["progress"] = (i + 1) / total_texts
         
         # Mark as completed
         EMBEDDING_TASKS[task_id]["progress"] = 1.0
