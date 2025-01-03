@@ -12,8 +12,13 @@ cp .env.example .env
 ```
 
 ### Start up the backend app
-```
+```shell
 poetry run uvicorn app.main:app --reload
+```
+
+### Start up the ui for backend app (Like CMS/Playground)
+```shell
+poetry run streamlit run app/ui.py
 ```
 
 ### Add dependencies to the poetry project
