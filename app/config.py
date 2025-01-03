@@ -1,10 +1,10 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Environment settings for the application."""
-    server_port: int
     log_level: str
     log_dir: str
     static_dist_path: str
