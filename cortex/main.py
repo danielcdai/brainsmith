@@ -8,8 +8,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from uvicorn.config import LOGGING_CONFIG
 
-from app.routers import embedding, chunk, search
-from app.config import settings
+from cortex.routers import embedding, chunk, search
+from cortex.config import settings
 
 
 # Get the default logging configuration from uvicorn and update it.

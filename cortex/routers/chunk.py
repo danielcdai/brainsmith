@@ -5,7 +5,7 @@ from fastapi import APIRouter
 from fastapi import UploadFile, File, Form
 from fastapi.responses import JSONResponse
 
-from app.retrieval.loader import BrainSmithLoader
+from cortex.retrieval.loader import BrainSmithLoader
 
 
 router = APIRouter(prefix="/chunk", tags=["Chunk related functions"])

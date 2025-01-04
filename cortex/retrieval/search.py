@@ -2,7 +2,7 @@ from typing import List, Literal
 from pydantic import BaseModel
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from app.config import settings
+from cortex.config import settings
 
 
 class SearchRequest(BaseModel):

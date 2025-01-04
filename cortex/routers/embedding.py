@@ -4,7 +4,7 @@ import threading
 from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import JSONResponse
 
-from app.retrieval.embedding import (
+from cortex.retrieval.embedding import (
     TaskStatus,
     EmbeddingRequest,
     start_embedding_task, 
@@ -56,5 +56,6 @@ def get_progress(task_id: str):
     return TaskStatus(
         task_id=task_id,
         progress=task_info.progress,
-        status=task_info.status
+        status=task_info.status,
+        estimated_time_left=task_info.estimated_time_left
     )

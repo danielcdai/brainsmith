@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from app.retrieval.search import SearchRequest, search_by_collection
+from cortex.retrieval.search import SearchRequest, search_by_collection
 
 
 router = APIRouter(prefix="/search", tags=["Search related functions"])

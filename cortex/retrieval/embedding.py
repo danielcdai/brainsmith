@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from typing import List
-from app.config import settings
+from cortex.config import settings
 import logging
 import uuid
 
@@ -27,6 +27,7 @@ class TaskStatus(BaseModel):
     task_id: str
     progress: float
     status: str
+    estimated_time_left: float
 
 
 def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
@@ -44,6 +45,7 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
     """
     try:
         EMBEDDING_TASKS[task_id]["status"] = "running"
+        EMBEDDING_TASKS[task_id]["estimated_time_left"] = 0.0
         embeddings = None
         if settings.provider == "openai":
             if not settings.openai_api_key:
@@ -51,7 +53,7 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
             from langchain_openai import OpenAIEmbeddings
             embeddings = OpenAIEmbeddings(
                 api_key=settings.openai_api_key,
-                # TODO: Make openai embedding model configurable, hard-coded for now
+                # TODO: Change vector storage provider to make the dimension configurable
                 dimensions=768,
                 model="text-embedding-3-large",
             )
@@ -77,6 +79,8 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
                 persist_directory=settings.embeddings_dir,
             )
             total_texts = len(texts)
+            import time
+            start_time = time.time()
             for i, text in enumerate(texts):
                 text_id = str(uuid.uuid4())
                 document = Document(
@@ -85,11 +89,17 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
                     page_content=text)
                 # Warning: use add_documents instead of update_documents to avoid empty search results
                 vector_store.add_documents(documents=[document])
-                EMBEDDING_TASKS[task_id]["progress"] = (i + 1) / total_texts
+                elapsed_time = time.time() - start_time
+                progress = (i + 1) / total_texts
+                estimated_total_time = elapsed_time / progress
+                estimated_time_left = estimated_total_time - elapsed_time
+                EMBEDDING_TASKS[task_id]["progress"] = progress
+                EMBEDDING_TASKS[task_id]["estimated_time_left"] = estimated_time_left
         
         # Mark as completed
         EMBEDDING_TASKS[task_id]["progress"] = 1.0
         EMBEDDING_TASKS[task_id]["status"] = "completed"
+        EMBEDDING_TASKS[task_id]["estimated_time_left"] = 0.0
     except Exception as e:
         EMBEDDING_TASKS[task_id]["status"] = "failed"
         raise e
@@ -113,7 +123,7 @@ def get_task_status(task_id: str) -> TaskStatus:
         raise ValueError(f"Task with id {task_id} does not exist.")
     
     task_info = EMBEDDING_TASKS[task_id]
-    return TaskStatus(task_id=task_id, progress=task_info["progress"], status=task_info["status"])
+    return TaskStatus(task_id=task_id, progress=task_info["progress"], status=task_info["status"], estimated_time_left=task_info["estimated_time_left"])
 
 
 def is_task_id_in_tasks(task_id: str) -> bool:

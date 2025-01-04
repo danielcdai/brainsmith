@@ -1,7 +1,7 @@
 import pytest
 import random
-from app.retrieval.search import search_by_collection
-from app.retrieval.embedding import (
+from cortex.retrieval.search import search_by_collection
+from cortex.retrieval.embedding import (
     start_embedding_task,
     initialize_embedding_task
 )
@@ -48,7 +48,7 @@ def test_start_embedding_task_and_search(setup_embedding_task):
 @pytest.fixture(scope="module", autouse=True)
 def cleanup_embedding_dir():
     yield
-    from app.config import settings
+    from cortex.config import settings
     import shutil
     import os
     if os.path.exists(settings.embeddings_dir):

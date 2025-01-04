@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from app.retrieval.loader import BrainSmithLoader
+from cortex.retrieval.loader import BrainSmithLoader
 from langchain_core.documents import Document
 
 
