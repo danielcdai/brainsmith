@@ -46,16 +46,60 @@ if prompt := st.chat_input("What is up?"):
         st.markdown(prompt)
 
     client = OpenAI(api_key=openai_api_key)
+    messages_payload = st.session_state.messages.copy()
+
+    def _contextual_user_input(original_user_input):
+        import requests
+        import json
+
+        url = "http://localhost:8000/search"
+
+        payload = json.dumps({
+            "name": "paul",
+            "query": original_user_input,
+            "top_k": 3,
+            "search_type": "similarity",
+            "content_only": True
+        })
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        response = requests.request("POST", url, headers=headers, data=payload)
+        try:
+            response.raise_for_status()
+            content_list = response.json()
+            combined_context = ", ".join([f"context {i+1}: {item}" for i, item in enumerate(content_list)])
+            rag_prompt = f"""Answer the following question based on the given context.
+            ---
+            Context: {combined_context}
+            ---
+            Question: {original_user_input}
+            ---
+            Answer: """
+            return rag_prompt
+        except Exception as err:
+            st.error(f"Error occurred while returning the chunking response: {err}")
+        return None
+
+
+    with st.spinner("Checking embedded knowledge..."):
+        original_user_input = messages_payload[0]["content"]
+        processed_user_input = _contextual_user_input(original_user_input)
+        if processed_user_input is not None:
+            messages_payload[0] = {"role": "user", "content": processed_user_input}
+        else:
+            st.warning("Failed to get the search result from your question, continue the chat without context.")
     with st.chat_message("assistant"):
         stream = client.chat.completions.create(
             model=st.session_state["openai_model"],
             messages=[
                 {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
+                for m in messages_payload
             ],
             stream=True,
         )
         response = st.write_stream(stream)
+    print(st.session_state.messages)
     st.session_state.messages.append({"role": "assistant", "content": response})
 
 if len(st.session_state.messages):
