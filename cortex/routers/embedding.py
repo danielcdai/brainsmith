@@ -1,6 +1,7 @@
 import uuid
 import threading
 
+import chromadb
 from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import JSONResponse
 
@@ -12,6 +13,7 @@ from cortex.retrieval.embedding import (
     get_task_status,
     is_task_id_in_tasks
 )
+from cortex.config import settings
 
 router = APIRouter(prefix="/embedding", tags=["Embedding related functions"])
 
@@ -33,7 +35,7 @@ def start_embedding(request: EmbeddingRequest = Body(...)):
     )
     thread.start()
 
-    check_status_url = f"/embedding/{task_id}"
+    check_status_url = f"/embedding/task/{task_id}"
     return JSONResponse(
         status_code=202,
         content={
@@ -44,7 +46,7 @@ def start_embedding(request: EmbeddingRequest = Body(...)):
     )
 
 
-@router.get("/{task_id}", response_model=TaskStatus)
+@router.get("/task/{task_id}", response_model=TaskStatus)
 def get_progress(task_id: str):
     """
     GET endpoint to retrieve the current progress and status of a task.
@@ -59,3 +61,14 @@ def get_progress(task_id: str):
         status=task_info.status,
         estimated_time_left=task_info.estimated_time_left
     )
+
+
+@router.get("/names", response_model=set)
+def get_embedded_names():
+    """
+    GET endpoint to retrieve the list of names that have been embedded.
+    """
+    client = chromadb.PersistentClient(settings.embeddings_dir)
+    collections = client.list_collections()
+    collection_names = [collection.name for collection in collections]
+    return set(collection_names)

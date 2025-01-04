@@ -14,8 +14,11 @@
 # This UI is intended to act as a playground and content management system for the admins of BrainSmith.
 # It is not meant to be exposed on the public internet and should not be used as a client-facing interface.
 
-from openai import OpenAI
+import requests
+import json
+
 import streamlit as st
+from openai import OpenAI
 
 
 
@@ -26,6 +29,23 @@ with st.sidebar:
 
 st.title("💬Chatbot")
 st.caption("🚀 A chatbot powered by OpenAI")
+def get_embedded_names():
+    """
+    GET endpoint to retrieve the list of names that have been embedded.
+    """
+
+    url = "http://localhost:8000/embedding/names"
+    response = requests.request("GET", url)
+    response.raise_for_status()
+    try:
+        return response.json()
+    except json.JSONDecodeError as e:
+        st.error(f"Failed to decode JSON response: {e}")
+        return []
+
+embedded_names = get_embedded_names()
+embedded_names.append(None)
+st.selectbox("Deja Vu", embedded_names, key="embedding_name")
 
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-4o"
@@ -55,7 +75,7 @@ if prompt := st.chat_input("What is up?"):
         url = "http://localhost:8000/search"
 
         payload = json.dumps({
-            "name": "paul",
+            "name": st.session_state["embedding_name"],
             "query": original_user_input,
             "top_k": 3,
             "search_type": "similarity",
@@ -81,14 +101,14 @@ if prompt := st.chat_input("What is up?"):
             st.error(f"Error occurred while returning the chunking response: {err}")
         return None
 
-
-    with st.spinner("Checking embedded knowledge..."):
-        original_user_input = messages_payload[0]["content"]
-        processed_user_input = _contextual_user_input(original_user_input)
-        if processed_user_input is not None:
-            messages_payload[0] = {"role": "user", "content": processed_user_input}
-        else:
-            st.warning("Failed to get the search result from your question, continue the chat without context.")
+    if st.session_state["embedding_name"] is not None:
+        with st.spinner("Checking embedded knowledge..."):
+            original_user_input = messages_payload[0]["content"]
+            processed_user_input = _contextual_user_input(original_user_input)
+            if processed_user_input is not None:
+                messages_payload[0] = {"role": "user", "content": processed_user_input}
+            else:
+                st.warning("Failed to get the search result from your question, continue the chat without context.")
     with st.chat_message("assistant"):
         stream = client.chat.completions.create(
             model=st.session_state["openai_model"],
@@ -99,7 +119,6 @@ if prompt := st.chat_input("What is up?"):
             stream=True,
         )
         response = st.write_stream(stream)
-    print(st.session_state.messages)
     st.session_state.messages.append({"role": "assistant", "content": response})
 
 if len(st.session_state.messages):
