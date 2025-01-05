@@ -18,7 +18,6 @@ import requests
 import json
 
 import streamlit as st
-from openai import OpenAI
 
 
 
@@ -44,8 +43,9 @@ def get_embedded_names():
         return []
 
 embedded_names = get_embedded_names()
-embedded_names.append(None)
-st.selectbox("Deja Vu", embedded_names, key="embedding_name")
+embedded_names.insert(0, None)
+with st.expander("Context Agent"):
+    st.selectbox("Deja Vu", embedded_names, key="embedding_name")
 
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-4o"
@@ -61,65 +61,47 @@ if prompt := st.chat_input("What is up?"):
     if not openai_api_key:
         st.warning("Please add your OpenAI API key to continue.")
         st.stop()
-    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    client = OpenAI(api_key=openai_api_key)
-    messages_payload = st.session_state.messages.copy()
+    graph = None
+    if st.session_state["embedding_name"] is None:
+        from cortex.tools.default_agent import get_default_agent_graph
+        graph = get_default_agent_graph(api_key=openai_api_key, model=st.session_state["openai_model"])
+    else:
+        from cortex.tools.context_agent import get_context_agent_graph
+        graph = get_context_agent_graph(st.session_state["embedding_name"], api_key=openai_api_key, model=st.session_state["openai_model"])
 
-    def _contextual_user_input(original_user_input):
-        import requests
-        import json
+    from typing import Literal
+    def stream_graph_updates(user_input: str, mode: Literal["values", "messages"] = "values"):
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        if mode == "messages":
+            ai_answer = ""
+        for chunk in graph.stream(
+            {"messages": st.session_state.messages}, stream_mode=mode
+        ):
+            match mode:
+                case "values":
+                    if len(chunk["messages"]) % 2 == 0:
+                        # Debug only
+                        # print(chunk["messages"][-1].content, end='\n', flush=True)
+                        ai_answer = chunk["messages"][-1].content
+                case "messages":
+                    from langchain_core.messages import AIMessageChunk
+                    if len(chunk) % 2 == 0 and isinstance(chunk, tuple) and len(chunk) > 0 and type(chunk[0]) == AIMessageChunk:
+                        content = chunk[0].content
+                        ai_answer += content
+                        # Debug only
+                        # print(content, end='', flush=True)
+                        yield content
+        return ai_answer
 
-        url = "http://localhost:8000/search"
-
-        payload = json.dumps({
-            "name": st.session_state["embedding_name"],
-            "query": original_user_input,
-            "top_k": 3,
-            "search_type": "similarity",
-            "content_only": True
-        })
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        response = requests.request("POST", url, headers=headers, data=payload)
-        try:
-            response.raise_for_status()
-            content_list = response.json()
-            combined_context = ", ".join([f"context {i+1}: {item}" for i, item in enumerate(content_list)])
-            rag_prompt = f"""Answer the following question based on the given context.
-            ---
-            Context: {combined_context}
-            ---
-            Question: {original_user_input}
-            ---
-            Answer: """
-            return rag_prompt
-        except Exception as err:
-            st.error(f"Error occurred while returning the chunking response: {err}")
-        return None
-
-    if st.session_state["embedding_name"] is not None:
-        with st.spinner("Checking embedded knowledge..."):
-            original_user_input = messages_payload[0]["content"]
-            processed_user_input = _contextual_user_input(original_user_input)
-            if processed_user_input is not None:
-                messages_payload[0] = {"role": "user", "content": processed_user_input}
-            else:
-                st.warning("Failed to get the search result from your question, continue the chat without context.")
     with st.chat_message("assistant"):
-        stream = client.chat.completions.create(
-            model=st.session_state["openai_model"],
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in messages_payload
-            ],
-            stream=True,
-        )
+        stream = stream_graph_updates(prompt, mode="messages")
         response = st.write_stream(stream)
     st.session_state.messages.append({"role": "assistant", "content": response})
+    print(st.session_state.messages)
+
 
 if len(st.session_state.messages):
     if st.button("🗑️ Clear"):
