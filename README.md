@@ -44,3 +44,14 @@ poetry run uvicorn app.main:app --reload
 ```shell
 poetry run pytest -s
 ```
+
+## To-Do List
+- [ ] Add global settings page
+- [ ] Support HTTP client for Chroma
+- [ ] Provide second vector store provider
+- [ ] Save job info to Redis
+- [ ] Add progress page for embedding jobs
+- [ ] Fix Ollama non-streaming issue when chatting with domain knowledge
+- [ ] Show the retrieved context to the user along with AI answer
+- [ ] Categories app logs based on different functions
+- [ ] Others "TODO" or "FIXME" in the code
