@@ -13,12 +13,19 @@ class State(TypedDict):
     messages: Annotated[list, add_messages]
 
 
-def get_default_agent_graph(api_key: str = None, model: str = "gpt-4o"):
+def get_default_agent_graph(api_key: str = None, model: str = "gpt-4o", base_url: str = None):
     graph_builder = StateGraph(State)
 
     from langchain_openai import ChatOpenAI
 
-    llm = ChatOpenAI(api_key=api_key, model=model)
+    if base_url:
+        from langchain_ollama import ChatOllama
+        llm = ChatOllama(
+            base_url=base_url,
+            model=model
+        )
+    else:
+        llm = ChatOpenAI(api_key=api_key, model=model)
 
 
     def chatbot(state: State):

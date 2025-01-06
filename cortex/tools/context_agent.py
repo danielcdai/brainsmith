@@ -6,7 +6,7 @@ from langgraph.prebuilt import ToolNode
 from cortex.config import settings
 
 
-def get_context_agent_graph(embedding_name: str, api_key: str = None, model: str = "gpt-4o"):
+def get_context_agent_graph(embedding_name: str, api_key: str = None, model: str = "gpt-4o", base_url: str = None):
     def _contextual_user_input(original_user_input):
         import requests
         import json
@@ -50,7 +50,14 @@ def get_context_agent_graph(embedding_name: str, api_key: str = None, model: str
     tools = [get_similar_context]
     context_node = ToolNode(tools)
 
-    llm = ChatOpenAI(api_key=api_key, model=model).bind_tools(tools)
+    if base_url:
+        from langchain_ollama import ChatOllama
+        llm = ChatOllama(
+            base_url=base_url,
+            model=model
+        ).bind_tools(tools)
+    else:
+        llm = ChatOpenAI(api_key=api_key, model=model).bind_tools(tools)
 
     def should_continue(state: MessagesState):
         messages = state["messages"]

@@ -24,7 +24,9 @@ PYTHONPATH=$(pwd) poetry run streamlit run cortex/ui.py
 1. Open the browser, go to [Brainsmith Dashboard](http://localhost:5701).
 2. Login as admin.
 3. Embed a file, give it a name. (Ollama is required)
-4. Go to the Chat page, chat with your own knowledge base. (OpenAI key is required)
+4. Go to the Chat page, chat with your own knowledge base. (Choose OpenAI or Ollama as your chat provider)
+
+**Note:** The default chat model for OpenAI is GPT-4, which is hard-coded to ensure the best user experience. For Ollama, you can choose your preferred model.
 
 ## Development Guide
 
