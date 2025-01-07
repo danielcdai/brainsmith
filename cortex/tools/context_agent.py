@@ -3,10 +3,14 @@ from langgraph.graph import StateGraph, MessagesState, START, END
 from langchain_core.tools import tool
 from langgraph.prebuilt import ToolNode
 
-from cortex.config import settings
 
-
-def get_context_agent_graph(embedding_name: str, api_key: str = None, model: str = "gpt-4o", base_url: str = None):
+def get_context_agent_graph(
+        embedding_name: str, 
+        api_key: str = None, 
+        model: str = "gpt-4o", 
+        base_url: str = None,
+        **kwargs
+    ):
     def _contextual_user_input(original_user_input):
         import requests
         import json
@@ -16,9 +20,8 @@ def get_context_agent_graph(embedding_name: str, api_key: str = None, model: str
         payload = json.dumps({
             "name": embedding_name,
             "query": original_user_input,
-            # TODO: Make the top k configurable
-            "top_k": 3,
-            "search_type": "similarity",
+            "top_k": kwargs.get("top_k", 3),
+            "search_type": kwargs.get("search_type", "similarity"),
             "content_only": True
         })
         headers = {
@@ -29,13 +32,6 @@ def get_context_agent_graph(embedding_name: str, api_key: str = None, model: str
             response.raise_for_status()
             content_list = response.json()
             combined_context = ", ".join([f"context {i+1}: {item}" for i, item in enumerate(content_list)])
-            # rag_prompt = f"""Answer the following question based on the given context.
-            # ---
-            # Context: {combined_context}
-            # ---
-            # Question: {original_user_input}
-            # ---
-            # Answer: """
             return combined_context
         except Exception as err:
             print(err)
@@ -122,8 +118,6 @@ if __name__ == "__main__":
                             ai_answer += content
                             print(content, end='', flush=True)
                         messages_list.append({"role": "assistant", "content": ai_answer})
-            # Debug only
-            # print(chunk)
 
 
     while True:

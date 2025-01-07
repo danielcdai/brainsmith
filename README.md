@@ -12,7 +12,7 @@ cp .env.example .env
 
 ### Start up the backend app
 ```shell
-poetry run uvicorn app.main:app
+poetry run uvicorn cortext.main:app
 ```
 
 ### Start up the ui for backend app (Like CMS/Playground)

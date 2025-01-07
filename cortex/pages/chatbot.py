@@ -62,6 +62,8 @@ embedded_names = get_embedded_names()
 embedded_names.insert(0, None)
 with st.expander("Context Agent"):
     st.selectbox("Deja Vu", embedded_names, key="embedding_name")
+    st.selectbox("Search Type", ["similarity", "mmr"], key="search_type")
+    st.number_input("Top K", key="top_k", value=3)
 
 if st.session_state["chat_provider"] == "OpenAI" and "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-4o"
@@ -90,9 +92,21 @@ if prompt := st.chat_input("What is up?"):
     else:
         from cortex.tools.context_agent import get_context_agent_graph
         if st.session_state["chat_provider"] == "OpenAI":
-            graph = get_context_agent_graph(st.session_state["embedding_name"], api_key=openai_api_key, model=st.session_state["openai_model"])
+            graph = get_context_agent_graph(
+                st.session_state["embedding_name"], 
+                api_key=openai_api_key, 
+                model=st.session_state["openai_model"], 
+                top_k=st.session_state["top_k"], 
+                search_type=st.session_state["search_type"]
+            )
         elif st.session_state["chat_provider"] == "Ollama":
-            graph = get_context_agent_graph(st.session_state["embedding_name"], base_url=ollama_base_url, model=ollama_model)
+            graph = get_context_agent_graph(
+                st.session_state["embedding_name"], 
+                base_url=ollama_base_url, 
+                model=ollama_model, 
+                top_k=st.session_state["top_k"], 
+                search_type=st.session_state["search_type"]
+            )
 
     from typing import Literal
     def stream_graph_updates(user_input: str, mode: Literal["values", "messages"] = "values"):
@@ -105,16 +119,12 @@ if prompt := st.chat_input("What is up?"):
             match mode:
                 case "values":
                     if len(chunk["messages"]) % 2 == 0:
-                        # Debug only
-                        # print(chunk["messages"][-1].content, end='\n', flush=True)
                         ai_answer = chunk["messages"][-1].content
                 case "messages":
                     from langchain_core.messages import AIMessageChunk
                     if len(chunk) % 2 == 0 and isinstance(chunk, tuple) and len(chunk) > 0 and type(chunk[0]) == AIMessageChunk:
                         content = chunk[0].content
                         ai_answer += content
-                        # Debug only
-                        # print(content, end='', flush=True)
                         yield content
         return ai_answer
 
