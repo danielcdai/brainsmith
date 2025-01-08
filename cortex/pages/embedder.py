@@ -26,6 +26,7 @@ if uploaded_file is None:
 with st.expander("📚 Embedding options"):
     name = st.text_input("Name", "my-embedding")
     tag = st.text_input("Tag", "tutorial")
+    splitter = st.selectbox("Splitter", ["char", "semantic"], index=0)
     chunk_size = st.number_input("Chunk size", min_value=1, value=400, step=200)
     chunk_overlap = st.number_input("Chunk overlap", min_value=0, value=20, step=10)
     dimension = st.number_input("Dimension", min_value=1, value=512, step=256)
@@ -39,6 +40,7 @@ def _do_chunking():
     payload = {
         'chunk_size': chunk_size,
         'chunk_overlap': chunk_overlap,
+        'splitter': splitter,
         'content_only': True
     }
     files=[uploaded_file]

@@ -16,6 +16,7 @@ async def get_chunks_from_file(
     file: UploadFile = File(...),
     chunk_size: int = Form(1000),
     chunk_overlap: int = Form(50),
+    splitter: str = Form("char"),
     content_only: bool = Form(False)
 ):
     content = await file.read()
@@ -28,7 +29,9 @@ async def get_chunks_from_file(
         f.write(content)
 
     loader = BrainSmithLoader(file_path=tmp_file_path) 
-    documents = loader.load(load_type="text", chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    file_extension = os.path.splitext(file.filename)[1]
+    file_extension = file_extension.lstrip(".")
+    documents = loader.load(load_type=file_extension, chunk_size=chunk_size, chunk_overlap=chunk_overlap, splitter=splitter)
     if content_only:
         # Concise response for later embedding tasks
         return JSONResponse(content=[doc.page_content for doc in documents])
