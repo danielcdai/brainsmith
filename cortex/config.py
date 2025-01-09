@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     provider: str
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
     ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    file_collection_folder: str = "tests/corpus"
     
     model_config = SettingsConfigDict(
         env_file=os.environ.get("ENV_FILE_PATH", ".env"),
