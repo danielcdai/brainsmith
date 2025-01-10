@@ -1,3 +1,5 @@
+import warnings
+
 from pydantic import BaseModel
 from pathlib import Path
 from typing import Literal, List
@@ -6,6 +8,12 @@ from langchain_core.documents import Document
 
 
 """File loader for the BrainSmith vector database."""
+warnings.warn(
+    "BrainSmithLoader is deprecated and will be removed in a future release. "
+    "Please use Chunker instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 class BrainSmithLoader(BaseModel):
     file_path: Path
 

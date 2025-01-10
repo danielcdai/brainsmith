@@ -21,6 +21,7 @@ langgraph = "^0.2.60"
 langchain-experimental = "^0.3.4"
 pypdf = "^5.1.0"
 redis = "^5.2.1"
+docx2txt = "^0.8"
 
 
 [[tool.poetry.source]]

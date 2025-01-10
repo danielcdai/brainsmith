@@ -736,6 +736,21 @@ url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 reference = "tsinghua"
 
 [[package]]
+name = "docx2txt"
+version = "0.8"
+description = "A pure python-based utility to extract text and images from docx files."
+optional = false
+python-versions = "*"
+files = [
+    {file = "docx2txt-0.8.tar.gz", hash = "sha256:2c06d98d7cfe2d3947e5760a57d924e3ff07745b379c8737723922e7009236e5"},
+]
+
+[package.source]
+type = "legacy"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+reference = "tsinghua"
+
+[[package]]
 name = "durationpy"
 version = "0.9"
 description = "Module for converting between datetime.timedelta and Go's Duration strings."
@@ -5706,4 +5721,4 @@ reference = "tsinghua"
 [metadata]
 lock-version = "2.0"
 python-versions = "3.11.11"
-content-hash = "ade447d7089f7d762c2b3c38b51e171f2edb7f0f6f76ca3cef44625840281f3d"
+content-hash = "b18111f2cb363348711df2d41cfbb50cbe2d94845cfbae03b563928caf516044"

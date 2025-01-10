@@ -35,7 +35,6 @@ PYTHONPATH=$(pwd) poetry run streamlit run cortex/ui.py
 ![alt text](docs/images/image-3.png)
 2. Go to the chatbot page, select your embedding and chat with it.
 ![alt text](docs/images/image-4.png)
-3. Note that file must be txt or pdf as of now, more file extensions to be added.
 
 ## Development Guide
 
@@ -55,12 +54,14 @@ poetry run pytest -s
 ```
 
 ## To-Do List
+- [ ] Web page embedding support
 - [ ] Add global settings page
+- [ ] Save job info and chunk info to Redis
+- [ ] Save chunks to proper storage class
+- [ ] Add progress page for embedding jobs
+- [ ] Show the retrieved context to the user along with AI answer
 - [ ] Support HTTP client for Chroma
 - [ ] Provide second vector store provider
-- [ ] Save job info to Redis
-- [ ] Add progress page for embedding jobs
 - [ ] Fix Ollama non-streaming issue when chatting with domain knowledge
-- [ ] Show the retrieved context to the user along with AI answer
 - [ ] Categories app logs based on different functions
 - [ ] Others "TODO" or "FIXME" in the code

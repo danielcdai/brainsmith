@@ -177,3 +177,5 @@ embedding_results/
 
 # tools graph
 tool_graph.png
+
+.DS_Store
