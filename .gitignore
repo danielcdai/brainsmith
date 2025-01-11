@@ -178,4 +178,6 @@ embedding_results/
 # tools graph
 tool_graph.png
 
+# App Data
 .DS_Store
+dump.rdb

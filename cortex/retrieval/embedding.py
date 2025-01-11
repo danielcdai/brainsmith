@@ -3,6 +3,7 @@ from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from typing import List
 from cortex.config import settings
+from cortex.storage.tasks import update_task, load_task_by_id, load_all_tasks
 import logging
 import uuid
 
@@ -13,7 +14,6 @@ logging.basicConfig(
     level=logging.WARNING,
     format='%(levelname)s:%(name)s:%(message)s'
 )
-
 
 EMBEDDING_TASKS = {}
 
@@ -45,7 +45,8 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
     """
     try:
         EMBEDDING_TASKS[task_id]["status"] = "running"
-        EMBEDDING_TASKS[task_id]["estimated_time_left"] = 0.0
+        task_info = EMBEDDING_TASKS[task_id]
+        update_task(task_id, task_info)
         embeddings = None
         if settings.provider == "openai":
             if not settings.openai_api_key:
@@ -58,6 +59,8 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
                 model="text-embedding-3-large",
             )
             EMBEDDING_TASKS[task_id]["progress"] = 0.50
+            task_info = EMBEDDING_TASKS[task_id]
+            update_task(task_id, task_info)
             vector_store = Chroma(
                 collection_name=name,
                 embedding_function=embeddings,
@@ -95,13 +98,19 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
                 estimated_time_left = estimated_total_time - elapsed_time
                 EMBEDDING_TASKS[task_id]["progress"] = progress
                 EMBEDDING_TASKS[task_id]["estimated_time_left"] = estimated_time_left
+                task_info = EMBEDDING_TASKS[task_id]
+                update_task(task_id, task_info)
         
         # Mark as completed
         EMBEDDING_TASKS[task_id]["progress"] = 1.0
         EMBEDDING_TASKS[task_id]["status"] = "completed"
         EMBEDDING_TASKS[task_id]["estimated_time_left"] = 0.0
+        task_info = EMBEDDING_TASKS[task_id]
+        update_task(task_id, task_info)
     except Exception as e:
         EMBEDDING_TASKS[task_id]["status"] = "failed"
+        task_info = EMBEDDING_TASKS[task_id]
+        update_task(task_id, task_info)
         raise e
 
 
@@ -111,8 +120,12 @@ def initialize_embedding_task(task_id: str):
     """
     EMBEDDING_TASKS[task_id] = {
         "progress": 0.0,
-        "status": "initialized"
+        "status": "initialized",
+        "estimated_time_left": 0.0
     }
+    task_info = EMBEDDING_TASKS[task_id]
+    update_task(task_id, task_info)
+    
 
 
 def get_task_status(task_id: str) -> TaskStatus:
@@ -120,14 +133,43 @@ def get_task_status(task_id: str) -> TaskStatus:
     Retrieve the status of a given task by its task_id.
     """
     if task_id not in EMBEDDING_TASKS:
-        raise ValueError(f"Task with id {task_id} does not exist.")
-    
-    task_info = EMBEDDING_TASKS[task_id]
-    return TaskStatus(task_id=task_id, progress=task_info["progress"], status=task_info["status"], estimated_time_left=task_info["estimated_time_left"])
+        task_info = load_task_by_id(task_id)
+        if task_info is None:
+            raise ValueError(f"Task with id {task_id} does not exist.")
+        if task_info["status"] == "running" or task_info["status"] == "initialized":
+            task_info["status"] = "failed"
+            task_info["estimated_time_left"] = 0.0
+            update_task(task_id, task_info)
+    else:
+        task_info = EMBEDDING_TASKS[task_id]
+    return TaskStatus(
+        task_id=task_id, 
+        progress=task_info["progress"], 
+        status=task_info["status"], 
+        estimated_time_left=task_info["estimated_time_left"]
+    )
 
 
 def is_task_id_in_tasks(task_id: str) -> bool:
     """
     Check if a task_id exists in the TASKS dictionary.
     """
-    return task_id in EMBEDDING_TASKS
+    return task_id in EMBEDDING_TASKS or load_task_by_id(task_id) is not None
+
+
+def get_all_tasks() -> List[TaskStatus]:
+    """
+    Retrieve all the tasks from the TASKS dictionary.
+    """
+    tasks = []
+    t = load_all_tasks()
+    print(t)
+    for task_id, task_info in load_all_tasks():
+        task = TaskStatus(
+            task_id=task_id, 
+            progress=task_info["progress"], 
+            status=task_info["status"], 
+            estimated_time_left=task_info["estimated_time_left"]
+        )
+        tasks.append(task)
+    return tasks

@@ -11,7 +11,8 @@ from cortex.retrieval.embedding import (
     start_embedding_task, 
     initialize_embedding_task,
     get_task_status,
-    is_task_id_in_tasks
+    is_task_id_in_tasks,
+    load_all_tasks
 )
 from cortex.config import settings
 
@@ -61,6 +62,14 @@ def get_progress(task_id: str):
         status=task_info.status,
         estimated_time_left=task_info.estimated_time_left
     )
+
+
+@router.get("/task")
+def get_all_tasks():
+    """
+    GET endpoint to retrieve the status of all tasks.
+    """
+    return load_all_tasks()
 
 
 @router.get("/names", response_model=set)
