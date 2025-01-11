@@ -22,6 +22,9 @@ class Settings(BaseSettings):
         env_prefix="",
         extra="allow",
     )
+    
+    github_client_id: str = os.getenv("github_client_id", "")
+    github_client_secret: str = os.getenv("github_secret", "")
 
 
 settings = Settings()

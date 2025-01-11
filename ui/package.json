@@ -62,6 +62,8 @@
 	},
 	"dependencies": {
 		"@iconify/svelte": "^4.1.0",
-		"@material/dom": "^14.0.0"
+		"@material/dom": "^14.0.0",
+		"http-proxy-middleware": "^3.0.3",
+		"tippy.js": "^6.3.7"
 	}
 }
