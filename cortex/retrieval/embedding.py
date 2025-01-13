@@ -20,6 +20,7 @@ EMBEDDING_TASKS = {}
 
 class EmbeddingRequest(BaseModel):
     name: str
+    tag: str
     texts: List[str]
 
 
@@ -30,7 +31,7 @@ class TaskStatus(BaseModel):
     estimated_time_left: float
 
 
-def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
+def start_embedding_task(name: str, tag: str, task_id: str, texts: List[str]) -> str:
     """
     Starts an embedding task and updates its progress for client polling.
     This function initiates a long-running embedding task, which typically takes 5-10 minutes.
@@ -67,7 +68,7 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
                 persist_directory=settings.embeddings_dir,
             )
             uuids = [str(uuid.uuid4()) for _ in range(len(texts))]
-            metadatas = [{"source": "upload"} for _ in range(len(texts))]
+            metadatas = [{"source": tag} for _ in range(len(texts))]
             vector_store.add_texts(texts=texts, metadatas=metadatas, ids=uuids)
         elif settings.provider == "ollama":
             from langchain_ollama import OllamaEmbeddings
@@ -88,7 +89,7 @@ def start_embedding_task(name: str, task_id: str, texts: List[str]) -> str:
                 text_id = str(uuid.uuid4())
                 document = Document(
                     id=text_id, 
-                    metadata={"source": "upload"}, 
+                    metadata={"source": tag}, 
                     page_content=text)
                 # Warning: use add_documents instead of update_documents to avoid empty search results
                 vector_store.add_documents(documents=[document])

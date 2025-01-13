@@ -17,6 +17,7 @@ async def search(request: SearchRequest):
     # Perform the search using the provided parameters
     docs = search_by_collection(
         collection_name=request.name, 
+        tags=request.tags,
         query=request.query, 
         top_k=request.top_k, 
         search_type=request.search_type,

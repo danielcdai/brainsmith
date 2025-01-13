@@ -64,6 +64,7 @@ def _do_embedding_start(chunks):
     url = "http://localhost:8000/embedding/start"
     payload = json.dumps({
         "name": name,
+        "tag": tag,
         "texts": chunks   
     })
     headers = {

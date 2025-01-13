@@ -31,7 +31,7 @@ def start_embedding(request: EmbeddingRequest = Body(...)):
     # Create and start the thread
     thread = threading.Thread(
         target=start_embedding_task, 
-        args=(request.name, task_id, request.texts),
+        args=(request.name, request.tag, task_id, request.texts),
         daemon=True
     )
     thread.start()
@@ -81,3 +81,12 @@ def get_embedded_names():
     collections = client.list_collections()
     collection_names = [collection.name for collection in collections]
     return set(collection_names)
+
+
+@router.get("/tags")
+def get_tags_by_name(name: str):
+    """
+    GET endpoint to retrieve the tags of a collection by its name.
+    """
+    # TODO: Implement this endpoint, might need to include storage of tags
+    pass

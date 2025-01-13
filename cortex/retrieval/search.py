@@ -7,6 +7,7 @@ from cortex.config import settings
 
 class SearchRequest(BaseModel):
     name: str
+    tags: List[str] = []
     query: str
     top_k: int = 10
     search_type: str = "default"
@@ -16,6 +17,7 @@ class SearchRequest(BaseModel):
 
 def search_by_collection(
     collection_name: str, 
+    tags: List[str],
     query: str, 
     top_k: int = 5, 
     search_type: Literal["similarity", "mmr"] = "similarity",
@@ -36,17 +38,12 @@ def search_by_collection(
         embedding_function=embeddings,
         persist_directory=settings.embeddings_dir,
     )
-    if search_type == "similarity":
-        return vector_store.similarity_search(
-            query=query,
-            k=top_k,
-            # TODO: Add metadata support here
-            # filter={"source": "tweet"},
-        )
-    elif search_type == "mmr":
-        if "fetch_k" not in kwargs:
-            kwargs["fetch_k"] = top_k * 5
-        retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": top_k, **kwargs})
-        return retriever.invoke(query)
-    else:
-        raise ValueError("Invalid search type. Please choose 'similarity' or 'mmr'.")
+    retriever = vector_store.as_retriever(
+        search_type=search_type, 
+        search_kwargs={
+            "k": top_k, 
+            "filter": {"source": {"$in": tags}} if tags else None, 
+            **kwargs
+        }
+    )
+    return retriever.invoke(query)
