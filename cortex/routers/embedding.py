@@ -1,20 +1,10 @@
 import uuid
 import threading
 
-import chromadb
 from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import JSONResponse
+from cortex.retrieval.embedding import *
 
-from cortex.retrieval.embedding import (
-    TaskStatus,
-    EmbeddingRequest,
-    start_embedding_task, 
-    initialize_embedding_task,
-    get_task_status,
-    is_task_id_in_tasks,
-    load_all_tasks
-)
-from cortex.config import settings
 
 router = APIRouter(prefix="/embedding", tags=["Embedding related functions"])
 
@@ -77,16 +67,27 @@ def get_embedded_names():
     """
     GET endpoint to retrieve the list of names that have been embedded.
     """
-    client = chromadb.PersistentClient(settings.embeddings_dir)
-    collections = client.list_collections()
-    collection_names = [collection.name for collection in collections]
-    return set(collection_names)
+    names = get_all_embedded_names()
+    if names is None:
+        raise HTTPException(status_code=404, detail="No names found")
+    return names
 
 
-@router.get("/tags")
+@router.get("/tags", response_model=set)
 def get_tags_by_name(name: str):
     """
     GET endpoint to retrieve the tags of a collection by its name.
     """
-    # TODO: Implement this endpoint, might need to include storage of tags
-    pass
+    tags = get_all_tags_by_name(name)
+    if tags is None:
+        raise HTTPException(status_code=404, detail="Name not found")
+    return tags
+
+
+@router.delete("/tags")
+def delete_tags_by_name(name: str, tags: str):
+    """
+    DELETE endpoint to delete the tags of a collection by its name.
+    """
+    [delete_tag(name, t) for t in tags.split(",")]
+    return JSONResponse(status_code=204, content={"message": "Tags deleted successfully."})

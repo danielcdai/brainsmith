@@ -4,6 +4,7 @@ from langchain_chroma import Chroma
 from typing import List
 from cortex.config import settings
 from cortex.storage.tasks import update_task, load_task_by_id, load_all_tasks
+import chromadb
 import logging
 import uuid
 
@@ -174,3 +175,34 @@ def get_all_tasks() -> List[TaskStatus]:
         )
         tasks.append(task)
     return tasks
+
+
+def get_all_embedded_names() -> set:
+    """
+    Retrieve the set of all names that have been embedded.
+    """
+    client = chromadb.PersistentClient(settings.embeddings_dir)
+    collections = client.list_collections()
+    collection_names = [collection.name for collection in collections]
+    return set(collection_names)
+
+
+def get_all_tags_by_name(name: str) -> set[str]:
+    """
+    Retrieve the tags of a collection by its name.
+    """
+    client = chromadb.PersistentClient(settings.embeddings_dir)
+    collection = client.get_collection(name)
+    all_docs = collection.get(include=['metadatas'])
+    unique_sources = {metadata.get("source") for metadata in all_docs['metadatas'] if "source" in metadata}
+    return set(unique_sources)
+
+
+def delete_tag(name: str, tag: str):
+    """
+    Delete the tags of a collection by its name.
+    """
+    client = chromadb.PersistentClient(settings.embeddings_dir)
+    collection = client.get_collection(name)
+    collection.delete(where={"source": tag})
+    logging.info(f"Deleted tag {tag} from collection {name}. ")
