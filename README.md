@@ -56,8 +56,6 @@ poetry run pytest -s
 ## To-Do List
 - [ ] Web page embedding support
 - [ ] Add global settings page
-- [ ] Save job info and chunk info to Redis
-- [ ] Save chunks to proper storage class
 - [ ] Add progress page for embedding jobs
 - [ ] Show the retrieved context to the user along with AI answer
 - [ ] Support HTTP client for Chroma
