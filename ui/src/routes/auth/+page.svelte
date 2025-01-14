@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { login } from '$lib/api/auth/index.js';
-    import { onMount } from 'svelte';
-    let githubAuthUrl = '';
-    onMount(async () => {
-        const res = await login();
-        const data = await res.json();
-        githubAuthUrl = data.githubAuthUrl;
-    });
-    const handleLogin = () => {
-        window.location.href = githubAuthUrl;
-    };
+	async function handleLogin() {
+		const response = await login();
+		console.log('response', response);
+		if (response.ok) {
+			const data = await response.json();
+			console.log('data', data);
+			window.location.href = data;
+		}
+    }
+
 </script>
 
 <div class="block h-screen bg-white p-4 text-black">

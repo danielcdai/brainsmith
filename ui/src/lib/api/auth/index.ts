@@ -3,7 +3,7 @@ import { BACKEND_URL } from "$lib/constants.js";
 export const login = async () => {
     const url = BACKEND_URL + '/auth/login';
     return await fetch(url, {
-        method: 'POST',
+        method: 'GET',
         headers: {
             'Content-Type': 'application/json'
         }
@@ -19,4 +19,12 @@ export const callback = async (data:any) => {
         },
         body: JSON.stringify(data)
     })
+}
+
+export const getUser = async () => {
+    const url = BACKEND_URL + '/auth/user';
+    return await fetch(url, {
+        method: 'GET',
+        credentials: 'include'
+    });
 }

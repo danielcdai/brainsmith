@@ -9,10 +9,10 @@
 </script>
 
 <div class=" block h-screen ">
-    <div class="flex w-full h-16 bg-gray-800 items-center justify-between">
+    <div class="flex w-full h-1/10 bg-gray-800 items-center justify-between">
         <Header />
     </div>
-	<div class="flex flex-row w-full h-full">
+	<div class="flex flex-row w-full h-screen max-h-[90dvh]">
         <Sidebar />
         <slot></slot>
     </div>

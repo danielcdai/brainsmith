@@ -1,11 +1,19 @@
+<script context="module">
+    export async function load({ url }) {
+        const code = url.searchParams.get('code');
+        return { props: { code }}
+    }
+</script>
+
 <script lang="ts">
     import { onMount } from 'svelte';
     import { callback } from '$lib/api/auth/index.js';
     import {VITE_GITHUB_CLIENT_ID, VITE_GITHUB_SECRET} from '$lib/constants.js';
+
+    export let code;
     let user = null;
     onMount(async () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get("code");
+        console.log('code: ',code);
         if (code) {
             const response = await callback({
                 client_id: VITE_GITHUB_CLIENT_ID,
@@ -22,3 +30,6 @@
         
     });
 </script>
+<div>
+    <p>Code: {code}</p>
+</div>

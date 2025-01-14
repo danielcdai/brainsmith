@@ -8,7 +8,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from uvicorn.config import LOGGING_CONFIG
 
-from cortex.routers import embedding, chunk, search
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware 
+from cortex.routers import embedding, chunk, search, auth
 from cortex.config import settings
 
 
@@ -55,6 +57,15 @@ app = FastAPI()
 app.include_router(embedding.router)
 app.include_router(chunk.router)
 app.include_router(search.router)
+app.include_router(auth.router)
+app.add_middleware(SessionMiddleware, secret_key="brainsmith")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 # Middleware to log the requests and responses in debug.
 @app.middleware("http")
