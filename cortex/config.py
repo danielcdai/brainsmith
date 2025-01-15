@@ -23,8 +23,8 @@ class Settings(BaseSettings):
         extra="allow",
     )
     
-    github_client_id: str = "Ov23lifGVDz3Y0M9mJRH"
-    github_client_secret: str = "bcb247ac05707fa913177e7e62f129ee97e476a9"
+    github_client_id: str = os.environ.get("github_client_id", "")
+    github_client_secret: str = os.environ.get("github_secret_id", "")
 
 
 settings = Settings()

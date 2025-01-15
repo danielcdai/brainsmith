@@ -44,25 +44,32 @@ async def github_callback(request: Request, code: str):
     access_token = response_data["access_token"]
 
     # Fetch user info
+    # user_info_url = "https://api.github.com/user"
+    # headers = {"Authorization": f"Bearer {access_token}"}
+    # async with httpx.AsyncClient() as client:
+    #     user_response = await client.get(user_info_url, headers=headers)
+    #     user_data = user_response.json()
+
+    # Store user info in session
+    # request.session["user"] = user_data
+    # request.session["access_token"] = access_token
+    # return user_data
+    return RedirectResponse(f"http://localhost:5173/callback?access_token={access_token}")
+     
+@router.get("/user")
+async def get_user(request: Request):
+    """Return the current logged-in user's information."""
+    access_token = request.get("access_token")
+    # user = request.session.get("user")
+    # access_token = request.session.get("access_token")
+    # if not user:
+    #     raise HTTPException(status_code=401, detail="User not logged in")
+    if not access_token:
+        raise HTTPException(status_code=401, detail="User not logged in")
+    # Fetch user info
     user_info_url = "https://api.github.com/user"
     headers = {"Authorization": f"Bearer {access_token}"}
     async with httpx.AsyncClient() as client:
         user_response = await client.get(user_info_url, headers=headers)
         user_data = user_response.json()
-
-    # Store user info in session
-    request.session["user"] = user_data
-    request.session["access_token"] = access_token
-    # return user_data
-    return RedirectResponse("http://localhost:5173")
-     
-@router.get("/user")
-async def get_user(request: Request):
-    """Return the current logged-in user's information."""
-    user = request.session.get("user")
-    access_token = request.session.get("access_token")
-    if not user:
-        raise HTTPException(status_code=401, detail="User not logged in")
-    if not access_token:
-        raise HTTPException(status_code=401, detail="User not logged in")
-    return {"user": user, "access_token": access_token}
+    return {"user": user_data}

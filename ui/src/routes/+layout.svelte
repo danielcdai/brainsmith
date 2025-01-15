@@ -8,15 +8,18 @@ let user = null;
 
 async function getUserInfo() {
         try {
-            const response = await getUser();
-            if (response.ok) {
-                const data = await response.json();
-                user = data.user;
-				const accessToken = data.access_token;
-				localStorage.setItem('accessToken', accessToken);
-            } else {
+			if (localStorage.getItem('accessToken') === null) {
 				goto('/auth');
+			} else {
+				const response = await getUser(localStorage.getItem('accessToken')!);
+				if (response.ok) {
+					const data = await response.json();
+					user = data.user;
+				} else {
+					goto('/auth');
+				}
 			}
+        
         } catch (error) {
             console.error("Failed to fetch user:", error);
 			goto('/auth');
@@ -25,13 +28,8 @@ async function getUserInfo() {
 
 let loaded = false;
 onMount(async () => {
+
 	getUserInfo();
-	if (localStorage.getItem('accessToken')) {
-		console.log('Get user~');
-		goto('/');
-	} else {
-		goto('/auth');
-	}
 	await tick();
 	loaded = true;
 });
