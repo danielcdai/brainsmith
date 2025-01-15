@@ -1,96 +1,143 @@
-import warnings
+"""
+Base Loader class for loading data points from a data source.
 
-from pydantic import BaseModel
-from pathlib import Path
-from typing import Literal, List
-from langchain_core.documents import Document
+This class is inherited from the open-source project Cognita.
+For more details, visit the project URL: 
+https://github.com/truefoundry/cognita
+"""
+from abc import ABC, abstractmethod
+from typing import AsyncGenerator, Dict, List
 
+from cortex.types import DataIngestionMode, DataSource, LoadedDataPoint
 
-
-"""File loader for the BrainSmith vector database."""
-warnings.warn(
-    "BrainSmithLoader is deprecated and will be removed in a future release. "
-    "Please use Chunker instead.",
-    DeprecationWarning,
-    stacklevel=2
-)
-class BrainSmithLoader(BaseModel):
-    file_path: Path
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        self.file_path = Path(self.file_path)
-        if not self.file_path.exists():
-            raise FileNotFoundError(f"The file {self.file_path} does not exist.")
+# A global registry to store all available loaders.
+LOADER_REGISTRY = {}
 
 
-    def _get_splitter(
-            self, 
-            chunk_size: int,
-            chunk_overlap: int,
-            split_type: Literal["char", "semantic"] = "char"
-        ):
-        match split_type:
-            case "char":
-                from langchain_text_splitters import RecursiveCharacterTextSplitter
-                text_splitter = RecursiveCharacterTextSplitter(
-                    chunk_size=chunk_size,
-                    chunk_overlap=chunk_overlap
-                )
-            # For semantic splitting, we use the Ollama embeddings to split the text into meaningful chunks
-            # Chunk size and overlap are not used in this case
-            case "semantic":
-                from langchain_experimental.text_splitter import SemanticChunker
-                from langchain_ollama import OllamaEmbeddings
-                from cortex.config import settings
-                text_splitter = SemanticChunker(
-                    embeddings = OllamaEmbeddings(
-                        base_url=settings.ollama_base_url,
-                        model="nomic-embed-text:latest",
-                    )
-                )
-            case _:
-                raise ValueError(f"Invalid split type: {split_type}")
-        return text_splitter
+def register_dataloader(type: str, cls):
+    """
+    Registers all the available loaders using `BaseLoader` class
+
+    Args:
+        type: The type of the loader to be registered.
+        cls: The loader class to be registered.
+
+    Returns:
+        None
+    """
+    global LOADER_REGISTRY
+    # Validate and add the loader to the registry.
+    if not type:
+        raise ValueError(
+            f"static attribute `name` needs to be a non-empty string on class {cls.__name__}"
+        )
+    if type in LOADER_REGISTRY:
+        raise ValueError(
+            f"Error while registering class {cls.__name__}, `name` already taken by {LOADER_REGISTRY[type].__name__}"
+        )
+    LOADER_REGISTRY[type] = cls
 
 
-    # TODO: Need to test if involve loader would make the chunking better
-    def _text_load(
-            self, 
-            chunk_size: int, 
-            chunk_overlap: int, 
-            split_type: Literal["char", "semantic"] = "char"
-        ) -> List[Document]:
-        with open(self.file_path, "r") as f:
-            uploaded_file =  f.read()
-        text_splitter = self._get_splitter(chunk_size, chunk_overlap, split_type)
-        return text_splitter.create_documents([uploaded_file])
+class BaseDataLoader(ABC):
+    """
+    Base data loader class. Data loader is responsible for detecting, filtering and then loading data points to be ingested.
+    """
+
+    async def load_full_data(
+        self,
+        data_source: DataSource,
+        dest_dir: str,
+        batch_size: int = 100,
+    ):
+        """
+        Sync the data source and load all data points from the source to the destination directory.
+        Args:
+            data_source (DataSource): The data source from which the data points are to be loaded.
+            dest_dir (str): The destination directory to store the loaded data.
+            batch_size (int): The batch size to be used for loading data points.
+        Returns:
+            None
+        """
+        return await self.load_filtered_data(
+            data_source,
+            dest_dir,
+            previous_snapshot={},
+            batch_size=batch_size,
+            data_ingestion_mode=DataIngestionMode.FULL,
+        )
+
+    async def load_incremental_data(
+        self,
+        data_source: DataSource,
+        dest_dir: str,
+        previous_snapshot: Dict[str, str],
+        batch_size: int = 100,
+    ):
+        """
+        Sync the data source, filter data points and load them from the source to the destination directory.
+        Args:
+            data_source (DataSource): The data source from which the data points are to be loaded.
+            dest_dir (str): The destination directory to store the loaded data.
+            previous_snapshot (Dict[str, str]): A dictionary of existing data points.
+            batch_size (int): The batch size to be used for loading data points.
+        Returns:
+            None
+        """
+        return await self.load_filtered_data(
+            data_source,
+            dest_dir,
+            previous_snapshot,
+            batch_size,
+            DataIngestionMode.INCREMENTAL,
+        )
+
+    @abstractmethod
+    async def load_filtered_data(
+        self,
+        data_source: DataSource,
+        dest_dir: str,
+        previous_snapshot: Dict[str, str],
+        batch_size: int,
+        data_ingestion_mode: DataIngestionMode,
+    ) -> AsyncGenerator[List[LoadedDataPoint], None]:
+        """
+        Sync the data source, filter data points and load them from the source to the destination directory.
+        This method returns the loaded data points in batches as an iterator.
+        Args:
+            data_source (DataSource): The data source from which the data points are to be loaded.
+            dest_dir (str): The destination directory to store the loaded data.
+            previous_snapshot (Dict[str, str]): A dictionary of existing data points.
+            batch_size (int): The batch size to be used for loading data points.
+            data_ingestion_mode (DataIngestionMode): The data ingestion mode to be used.
+        Returns:
+            Iterator[List[LoadedDataPoint]]: An iterator of list of loaded data points.
+        """
 
 
-    def _pdf_load(
-            self,
-            chunk_size: int,
-            chunk_overlap: int,
-            split_type: Literal["char", "semantic"] = "char"
-    ) -> List[Document]:
-        from langchain_community.document_loaders import PyPDFLoader
-        loader = PyPDFLoader(self.file_path)
-        text_splitter = self._get_splitter(chunk_size, chunk_overlap, split_type)
-        return loader.load_and_split(text_splitter=text_splitter)
-    
+def get_loader_for_data_source(type, *args, **kwargs) -> BaseDataLoader:
+    """
+    Returns the object of the loader class for given type
 
-    def load(
-            self,
-            load_type: Literal["text"] = "text", 
-            chunk_size: int = 1000, 
-            chunk_overlap: int = 200,
-            splitter: Literal["char", "semantic"] = "char"
-        ) -> List[Document]:
-        # TODO: Add support for other load types like PDF, CSV, Markdown, Code, Semantic, etc.
-        match load_type:
-            case "txt":
-                return self._text_load(chunk_size=chunk_size, chunk_overlap=chunk_overlap, split_type=splitter)
-            case "pdf":
-                return self._pdf_load(chunk_size=chunk_size, chunk_overlap=chunk_overlap, split_type=splitter)
-            case _:
-                raise ValueError(f"Invalid load type: {load_type}")
+    Args:
+        type (str): Type of the loader.
+    Returns:
+        BaseLoader: An instance of the specified loader class.
+    """
+    global LOADER_REGISTRY
+    if type not in LOADER_REGISTRY:
+        raise ValueError(f"No loader registered with type {type}")
+    return LOADER_REGISTRY[type](*args, **kwargs)
+
+
+def list_dataloaders():
+    """
+    Returns a list of all the registered loaders.
+
+    Returns:
+        List[Dict]: A list of all the registered loaders.
+    """
+    global LOADER_REGISTRY
+    return [
+        {"type": type, "class": cls.__name__, "description": cls.__doc__.strip()}
+        for type, cls in LOADER_REGISTRY.items()
+    ]
