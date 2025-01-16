@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from cortex.retrieval.loader import BrainSmithLoader
+from cortex.retrieval.brainsmith_loader import BrainSmithLoader
 from langchain_core.documents import Document
 
 
@@ -14,7 +14,7 @@ def test_brainsmithloader_load_text():
     """Test that the loader can load text from a file."""
     test_file = Path("tests/corpus/paul_graham_essay.txt")
     loader = BrainSmithLoader(file_path=test_file)
-    documents = loader.load(load_type="text", chunk_size=1000, chunk_overlap=50)
+    documents = loader.load(load_type="txt", chunk_size=1000, chunk_overlap=50)
 
     assert isinstance(documents, list)
     assert all(isinstance(doc, Document) for doc in documents)

@@ -81,7 +81,7 @@ class BrainSmithLoader(BaseModel):
 
     def load(
             self,
-            load_type: Literal["text"] = "text", 
+            load_type: Literal["txt", "pdf"] = "txt", 
             chunk_size: int = 1000, 
             chunk_overlap: int = 200,
             splitter: Literal["char", "semantic"] = "char"

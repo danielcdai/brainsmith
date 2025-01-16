@@ -11,6 +11,7 @@ from cortex.retrieval.embedding import (
 def setup_embedding_task():
     task_id = "test_task"
     name = "test_embedding"
+    tag = "test_tag"
     texts = [
         "Alice and Bob are siblings.",
         "Bob and Charlie are best friends.",
@@ -24,12 +25,12 @@ def setup_embedding_task():
         "Eve and Bob are gym buddies."
     ]
     initialize_embedding_task(task_id)
-    yield task_id, name, texts
+    yield task_id, name, tag, texts
 
 
 def test_start_embedding_task_and_search(setup_embedding_task):
-    task_id, name, texts = setup_embedding_task
-    start_embedding_task(name, task_id, texts)
+    task_id, name, tag, texts = setup_embedding_task
+    start_embedding_task(name, tag, task_id, texts)
     questions = [
         "Who are siblings?",
         "Who are best friends?",
@@ -38,8 +39,8 @@ def test_start_embedding_task_and_search(setup_embedding_task):
         "Who went to the same school?"
     ]
     random_question = random.choice(questions)
-    results = search_by_collection(collection_name=name, query=random_question, top_k=3, search_type="similarity")
-    mmr_results = search_by_collection(collection_name=name, query=random_question, top_k=3, search_type="mmr", fetch_k=10)
+    results = search_by_collection(collection_name=name, tags=[tag], query=random_question, top_k=3, search_type="similarity")
+    mmr_results = search_by_collection(collection_name=name, tags=[tag], query=random_question, top_k=3, search_type="mmr", fetch_k=10)
     assert len(results) == 3
     assert len(mmr_results) == 3
     assert results != mmr_results
