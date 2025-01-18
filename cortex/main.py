@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from uvicorn.config import LOGGING_CONFIG
 
-from cortex.routers import embedding, chunk, search
+from cortex.routers import embedding, chunk, search, summarize
 from cortex.config import settings
 
 
@@ -55,6 +55,7 @@ app = FastAPI()
 app.include_router(embedding.router)
 app.include_router(chunk.router)
 app.include_router(search.router)
+app.include_router(summarize.router)
 
 # Middleware to log the requests and responses in debug.
 @app.middleware("http")
