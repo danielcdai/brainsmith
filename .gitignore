@@ -183,3 +183,4 @@ tool_graph.png
 dump.rdb
 uploads/
 poetry.lock
+logs/
