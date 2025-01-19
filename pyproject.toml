@@ -23,6 +23,8 @@ pypdf = "^5.1.0"
 redis = "^5.2.1"
 docx2txt = "^0.8"
 itsdangerous = "^2.2.0"
+bs4 = "^0.0.2"
+validators = "^0.34.0"
 
 
 [[tool.poetry.source]]

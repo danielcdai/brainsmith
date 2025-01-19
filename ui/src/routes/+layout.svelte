@@ -3,6 +3,7 @@ import '../app.css';
 import { onMount, tick } from 'svelte';
 import { goto } from '$app/navigation';
 import {  getUser } from '$lib/api/auth/index.js';
+import { ModeWatcher } from "mode-watcher";
 
 let user = null;
 
@@ -11,10 +12,12 @@ async function getUserInfo() {
 			if (localStorage.getItem('accessToken') === null) {
 				goto('/auth');
 			} else {
-				const response = await getUser(localStorage.getItem('accessToken')!);
+				const response = await getUser(localStorage.getItem('accessToken'));
+				console.log('response: ', response);
 				if (response.ok) {
 					const data = await response.json();
 					user = data.user;
+					goto('/');
 				} else {
 					goto('/auth');
 				}
@@ -43,7 +46,7 @@ onMount(async () => {
 	<title>Blacksmith</title>
 	<link id="theme-style" rel="stylesheet" type="text/css" href="/smui.css" />
 </svelte:head>
-
+<ModeWatcher defaultMode={"dark"} themeColors={{ dark: "#000000", light: "#ffffff" }} />
 {#if loaded}
 	<slot />
 {/if}

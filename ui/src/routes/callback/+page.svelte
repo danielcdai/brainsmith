@@ -1,11 +1,3 @@
-<!-- <script context="module">
-    export async function load({ url }) {
-      const accessToken = url.searchParams.get('access_token');
-      console.log(accessToken); // 这将输出URL中的`access_token`参数
-      return { accessToken };
-    }
-</script> -->
-
 <script lang="ts">
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
@@ -23,8 +15,3 @@
         
     });
 </script>
-
-<main>
-    <h1>Auth Callback</h1>
-    <p>Access Token: {accessToken}</p>
-</main>

@@ -181,3 +181,6 @@ tool_graph.png
 # App Data
 .DS_Store
 dump.rdb
+uploads/
+poetry.lock
+logs/

@@ -17,6 +17,10 @@ const config = {
 				port: 5173
 			}
 		),
+
+		// alias: {
+		// 	"@/*": "./path/to/lib/*",
+		//   },
 	
 		files: {
 			assets: 'static'

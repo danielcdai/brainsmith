@@ -10,7 +10,7 @@ from uvicorn.config import LOGGING_CONFIG
 
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware 
-from cortex.routers import embedding, chunk, search, auth
+from cortex.routers import embedding, chunk, search, summarize, auth
 from cortex.config import settings
 
 
@@ -66,6 +66,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+app.include_router(summarize.router)
 
 # Middleware to log the requests and responses in debug.
 @app.middleware("http")

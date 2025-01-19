@@ -1,34 +1,61 @@
 <script lang="ts">
-	import { login } from '$lib/api/auth/index.js';
-	async function handleLogin() {
-		const response = await login();
-		console.log('response', response);
-		if (response.ok) {
-			const data = await response.json();
-			console.log('data', data);
-			window.location.href = data;
-		}
-    }
-
+    import UserAuthForm from "$lib/components/auth/UserAuthForm.svelte";
+    import Button from "$lib/components/ui/button/button.svelte";
+    import AuthBackground from "$lib/components/images/background.avif";
 </script>
 
-<div class="block h-screen bg-white p-4 text-black">
-	<div class="flex h-40 items-center justify-center">
-		<span class="text-2xl font-bold">Wellcome to Brainsmith Dashboard </span>
-	</div>
-	<div class="m-auto block h-72 w-96 rounded-lg border-2 border-purple-500 bg-purple-400 p-2">
-		<div class="m-auto flex h-1/2 w-72 items-center justify-center text-xl font-bold">
-			<span> Log in to BrainSmith </span>
+<div
+	class="container relative hidden h-[800px] flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0"
+>
+	<Button
+		href="/examples/authentication"
+		variant="ghost"
+		class="absolute right-4 top-4 md:right-8 md:top-8"
+	>
+		Login
+	</Button>
+	<div class="bg-muted relative hidden h-full flex-col p-10 text-white lg:flex dark:border-r">
+		<div
+			class="absolute inset-0 bg-cover"
+			style="
+				background-image:
+					url({AuthBackground});"
+		></div>
+		<div class="relative z-20 flex items-center text-lg font-medium">
+			<!-- <Command class="mr-2 h-6 w-6" /> -->
+			BrainSmith
 		</div>
-		<div class="m-auto flex w-72 items-center justify-center">
-			<button
-				class="rounded
-             bg-blue-500
-            px-4 py-2 font-bold text-white hover:bg-blue-700"
-				on:click={handleLogin}
-			>
-				Sign in with Github
-			</button>
+		<div class="relative z-20 mt-auto">
+			<blockquote class="space-y-2">
+				<p class="text-lg">
+					&ldquo;This library has saved me countless hours of work and helped me deliver
+					stunning designs to my clients faster than ever before. Highly
+					recommended!&rdquo;
+				</p>
+				<footer class="text-sm">Sofia Davis</footer>
+			</blockquote>
+		</div>
+	</div>
+	<div class="lg:p-8">
+		<div class="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+			<div class="flex flex-col space-y-2 text-center">
+				<h1 class="text-2xl font-semibold tracking-tight">Create an account</h1>
+				<p class="text-muted-foreground text-sm">
+					Enter your email below to create your account
+				</p>
+			</div>
+			<UserAuthForm />
+			<p class="text-muted-foreground px-8 text-center text-sm">
+				By clicking continue, you agree to our
+				<a href="/terms" class="hover:text-primary underline underline-offset-4">
+					Terms of Service
+				</a>
+				and
+				<a href="/privacy" class="hover:text-primary underline underline-offset-4">
+					Privacy Policy
+				</a>
+				.
+			</p>
 		</div>
 	</div>
 </div>
