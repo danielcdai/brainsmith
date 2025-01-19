@@ -10,10 +10,7 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --check . && eslint .",
-		"prepare": "npm run smui-theme-light && npm run smui-theme-dark",
-		"smui-theme-light": "smui-theme compile static/smui.css -i src/theme",
-		"smui-theme-dark": "smui-theme compile static/smui-dark.css -i src/theme/dark"
+		"lint": "prettier --check . && eslint ."
 	},
 	"files": [
 		"dist",
@@ -68,7 +65,6 @@
 	},
 	"dependencies": {
 		"@iconify/svelte": "^4.1.0",
-		"@material/dom": "^14.0.0",
 		"http-proxy-middleware": "^3.0.3",
 		"mode-watcher": "^0.5.0",
 		"tippy.js": "^6.3.7"
