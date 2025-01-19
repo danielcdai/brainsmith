@@ -7,6 +7,11 @@ from pydantic import BaseModel
 import os
 
 
+class CategorizeRequest(BaseModel):
+    summary: str
+    openai_key: str
+
+
 class SummarizeRequest(BaseModel):
     url: str
     openai_key: str
