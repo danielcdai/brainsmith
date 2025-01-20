@@ -1,6 +1,9 @@
 import redis
+from cortex.config import settings
 
-r = redis.Redis(host='localhost', port=6379, db=0)
+
+r = redis.Redis(host=settings.redis_host, port=settings.redis_port, db=0)
+
 
 def store_chunk_metadata(file_id, chunk_id, offset, size, storage_path):
     r.rpush(f"file:{file_id}:chunks", chunk_id)
@@ -9,6 +12,7 @@ def store_chunk_metadata(file_id, chunk_id, offset, size, storage_path):
         "size": size,
         "storage_path": storage_path
     })
+
 
 def get_chunk_list(file_id, page, size):
     start = (page - 1) * size

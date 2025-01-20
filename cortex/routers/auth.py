@@ -1,30 +1,32 @@
-from fastapi import  HTTPException,  APIRouter, Depends, Request
-from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
 import httpx
+import logging
+from fastapi import  HTTPException,  APIRouter, Request
+from fastapi.responses import RedirectResponse
+
 from cortex.config import settings
+
 
 router = APIRouter(prefix="/auth")
 client_id = settings.github_client_id
 client_secret = settings.github_client_secret
-redirect_uri = "http://localhost:8000/auth/callback"
+redirect_uri = "/auth/callback"
 
 
 @router.get("/login")
-def github_login():
-    print("login")
+def github_login(request: Request):
     """Redirect user to GitHub OAuth authorization page."""
+    base_url = str(request.base_url).rstrip("/")
     github_authorize_url = (
-        f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}&scope=user"
+        f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={base_url}{redirect_uri}&scope=user"
     )
-    print(github_authorize_url)
     return github_authorize_url
+
 
 @router.get("/callback")
 async def github_callback(request: Request, code: str):
     """Handle GitHub OAuth callback and exchange code for access token."""
-    print('callback')
     token_url = "https://github.com/login/oauth/access_token"
+    base_url = str(request.base_url).rstrip("/")
     headers = {"Accept": "application/json"}
     data = {
         "client_id": client_id,
@@ -32,18 +34,18 @@ async def github_callback(request: Request, code: str):
         "code": code,
         "redirect_uri": redirect_uri,
     }
-    print('data: ', data)
     async with httpx.AsyncClient() as client:
         response = await client.post(token_url, headers=headers, data=data)
         response_data = response.json()
-    print("GitHub response:", response_data) 
+    logging.info("GitHub response:", response_data) 
     if "access_token" not in response_data:
         raise HTTPException(status_code=400, detail="Failed to get access token")
 
     access_token = response_data["access_token"]
 
-    return RedirectResponse(f"http://localhost:5173/callback?access_token={access_token}")
+    return RedirectResponse(f"{base_url}/ui/callback?access_token={access_token}")
      
+
 @router.get("/user")
 async def get_user(request: Request):
     """Return the current logged-in user's information."""

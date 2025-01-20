@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from cortex.retrieval.search import SearchRequest, search_by_collection
 
 
-router = APIRouter(prefix="/search", tags=["Search related functions"])
+router = APIRouter(prefix="/api/v1/search", tags=["Search related functions"])
 
 
 @router.post("/", response_model=List[str])

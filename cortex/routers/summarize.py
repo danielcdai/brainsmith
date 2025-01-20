@@ -5,7 +5,7 @@ from cortex.retrieval.stuff import SummarizeRequest, CategorizeRequest
 from cortex.tools.categorize import categorize_summary
 
 
-router = APIRouter(prefix="/summarize", tags=["Search related functions"])
+router = APIRouter(prefix="/api/v1/summarize", tags=["Search related functions"])
 
 
 @router.post("/web")

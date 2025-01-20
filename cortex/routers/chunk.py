@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from cortex.retrieval.chunking import Chunker
 
 
-router = APIRouter(prefix="/chunk", tags=["Chunk related functions"])
+router = APIRouter(prefix="/api/v1/chunk", tags=["Chunk related functions"])
 
 
 @router.post("/", response_model=List[str])

@@ -78,11 +78,11 @@ async def log_requests(request, call_next):
     return response
 
 
-@app.get("/", response_class=JSONResponse, status_code=404)
-async def read_root():
-    return {"detail": "Not Found. Please refer to the API documentation for available endpoints."}
+# @app.get("/", response_class=JSONResponse, status_code=404)
+# async def read_root():
+#     return {"detail": "Not Found. Please refer to the API documentation for available endpoints."}
 
 
 # Export the UI build as static files, served under /ui path.
-app.mount("/ui", StaticFiles(directory=settings.static_dist_path, html=True), name="ui")
+app.mount("/", StaticFiles(directory=settings.static_dist_path, html=True), name="ui")
 

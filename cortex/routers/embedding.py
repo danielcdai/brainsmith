@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from cortex.retrieval.embedding import *
 
 
-router = APIRouter(prefix="/embedding", tags=["Embedding related functions"])
+router = APIRouter(prefix="/api/v1/embedding", tags=["Embedding related functions"])
 
 
 @router.post("/start", status_code=202)

@@ -44,7 +44,6 @@ onMount(async () => {
 
 <svelte:head>
 	<title>Blacksmith</title>
-	<link id="theme-style" rel="stylesheet" type="text/css" href="/smui.css" />
 </svelte:head>
 <ModeWatcher defaultMode={"dark"} themeColors={{ dark: "#000000", light: "#ffffff" }} />
 {#if loaded}

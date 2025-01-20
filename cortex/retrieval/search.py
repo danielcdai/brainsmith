@@ -30,7 +30,7 @@ def search_by_collection(
     from langchain_ollama import OllamaEmbeddings
     embeddings = OllamaEmbeddings(
         # TODO: Make both url and model configurable
-        base_url="http://localhost:11434",
+        base_url=settings.ollama_base_url,
         model="nomic-embed-text:latest",
     )
     vector_store = Chroma(

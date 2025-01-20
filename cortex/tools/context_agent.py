@@ -12,10 +12,11 @@ def get_context_agent_graph(
         **kwargs
     ):
     def _contextual_user_input(original_user_input):
+        # TODO: Get rid of this hard-coded URL or make it invoke the search API from the cortex
         import requests
         import json
 
-        url = "http://localhost:8000/search"
+        url = "http://localhost:8000/api/v1/search"
 
         payload = json.dumps({
             "name": embedding_name,
