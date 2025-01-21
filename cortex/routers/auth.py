@@ -6,12 +6,13 @@ from fastapi.responses import RedirectResponse
 from cortex.config import settings
 
 
-router = APIRouter(prefix="/auth")
+router = APIRouter(prefix="/api/v1/auth")
 client_id = settings.github_client_id
 client_secret = settings.github_client_secret
-redirect_uri = "/auth/callback"
+redirect_uri = "/api/v1/auth/callback"
 
-
+# TODO: Extract the GitHub OAuth login and callback logic into a separate module
+# TODO: Encap all the constants into a class
 @router.get("/login")
 def github_login(request: Request):
     """Redirect user to GitHub OAuth authorization page."""
@@ -32,18 +33,18 @@ async def github_callback(request: Request, code: str):
         "client_id": client_id,
         "client_secret": client_secret,
         "code": code,
-        "redirect_uri": redirect_uri,
+        "redirect_uri": f'{base_url}{redirect_uri}',
     }
     async with httpx.AsyncClient() as client:
         response = await client.post(token_url, headers=headers, data=data)
         response_data = response.json()
-    logging.info("GitHub response:", response_data) 
     if "access_token" not in response_data:
         raise HTTPException(status_code=400, detail="Failed to get access token")
 
     access_token = response_data["access_token"]
 
-    return RedirectResponse(f"{base_url}/ui/callback?access_token={access_token}")
+    logging.info(f"User logged in with access token, redirect to callback URL")
+    return RedirectResponse(f"{base_url}/callback?access_token={access_token}")
      
 
 @router.get("/user")

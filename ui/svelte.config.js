@@ -34,7 +34,6 @@ const config = {
 	},
 	routes: [
 		{ pattern: /^\/$/, dest: 'index.html' },
-		// 其他路由配置
 	  ]
 };
 

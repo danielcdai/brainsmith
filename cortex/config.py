@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     file_collection_folder: str = "tests/corpus"
     redis_host: str = "localhost"
     redis_port: int = 6379
-    
+    github_client_id: str
+    github_client_secret: str
+
     model_config = SettingsConfigDict(
         env_file=os.environ.get("ENV_FILE_PATH", ".env"),
         env_file_encoding="utf-8",
@@ -24,8 +26,6 @@ class Settings(BaseSettings):
         extra="allow",
     )
     
-    github_client_id: str = os.environ.get("github_client_id", "")
-    github_client_secret: str = os.environ.get("github_secret_id", "")
 
 
 settings = Settings()

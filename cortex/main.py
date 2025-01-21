@@ -5,7 +5,7 @@ from datetime import datetime
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from starlette.responses import RedirectResponse
 from uvicorn.config import LOGGING_CONFIG
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -78,11 +78,5 @@ async def log_requests(request, call_next):
     return response
 
 
-# @app.get("/", response_class=JSONResponse, status_code=404)
-# async def read_root():
-#     return {"detail": "Not Found. Please refer to the API documentation for available endpoints."}
-
-
 # Export the UI build as static files, served under /ui path.
-app.mount("/", StaticFiles(directory=settings.static_dist_path, html=True), name="ui")
-
+app.mount("/ui", StaticFiles(directory=settings.static_dist_path), name="ui")
