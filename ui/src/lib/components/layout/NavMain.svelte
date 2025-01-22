@@ -6,11 +6,12 @@
 	import Search from 'lucide-svelte/icons/search';
 	import Settings from 'lucide-svelte/icons/settings';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
+	import { base } from '$app/paths';
 
 	const items = [
 		{
 			title: 'Chat',
-			url: '/chat',
+			url: `${base}/chat`,
 			icon: Chat
 		},
 		{

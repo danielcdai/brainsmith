@@ -3,7 +3,8 @@ import logging.config
 import os
 from datetime import datetime
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
 from uvicorn.config import LOGGING_CONFIG
@@ -13,6 +14,15 @@ from starlette.middleware.sessions import SessionMiddleware
 from cortex.routers import embedding, chunk, search, summarize, auth
 from cortex.config import settings
 
+class SPAStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        try:
+            return await super().get_response(path, scope)
+        except (HTTPException, StarletteHTTPException) as ex:
+            if ex.status_code == 404:
+                return await super().get_response("index.html", scope)
+            else:
+                raise ex
 
 # Get the default logging configuration from uvicorn and update it.
 LOGGING_CONFIG["loggers"][__name__] = {
@@ -79,4 +89,6 @@ async def log_requests(request, call_next):
 
 
 # Export the UI build as static files, served under /ui path.
-app.mount("/ui", StaticFiles(directory=settings.static_dist_path), name="ui")
+app.mount("/ui", SPAStaticFiles(directory=settings.static_dist_path, html=True), name="ui")
+
+

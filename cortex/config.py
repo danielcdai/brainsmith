@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     redis_host: str = "localhost"
     redis_port: int = 6379
     github_client_id: str
-    github_client_secret: str
+    github_client_secret: str 
 
     model_config = SettingsConfigDict(
         env_file=os.environ.get("ENV_FILE_PATH", ".env"),

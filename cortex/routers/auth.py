@@ -28,6 +28,7 @@ async def github_callback(request: Request, code: str):
     """Handle GitHub OAuth callback and exchange code for access token."""
     token_url = "https://github.com/login/oauth/access_token"
     base_url = str(request.base_url).rstrip("/")
+    print('request_url: ', base_url)
     headers = {"Accept": "application/json"}
     data = {
         "client_id": client_id,
@@ -44,7 +45,8 @@ async def github_callback(request: Request, code: str):
     access_token = response_data["access_token"]
 
     logging.info(f"User logged in with access token, redirect to callback URL")
-    return RedirectResponse(f"{base_url}/callback?access_token={access_token}")
+    # return RedirectResponse(f"{base_url}/callback?access_token={access_token}")
+    return RedirectResponse(url=f"/ui/callback?access_token={access_token}")
      
 
 @router.get("/user")

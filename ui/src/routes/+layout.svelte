@@ -3,6 +3,7 @@ import '../app.css';
 import { onMount, tick } from 'svelte';
 import { goto } from '$app/navigation';
 import {  getUser } from '$lib/api/auth/index.js';
+import { base } from '$app/paths';
 import { ModeWatcher } from "mode-watcher";
 
 let user = null;
@@ -10,22 +11,22 @@ let user = null;
 async function getUserInfo() {
         try {
 			if (localStorage.getItem('accessToken') === null) {
-				goto('/auth');
+				goto(`${base}/auth`);
 			} else {
 				const response = await getUser(localStorage.getItem('accessToken'));
 				console.log('response: ', response);
 				if (response.ok) {
 					const data = await response.json();
 					user = data.user;
-					goto('/');
+					goto(`${base}`);
 				} else {
-					goto('/auth');
+					goto(`${base}/auth`);
 				}
 			}
         
         } catch (error) {
             console.error("Failed to fetch user:", error);
-			goto('/auth');
+			goto(`${base}/auth`);
         }
     }
 
