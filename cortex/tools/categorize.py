@@ -4,8 +4,11 @@ from langchain_core.output_parsers import StrOutputParser
 import os
 
 
-def categorize_summary(summary, openai_key):
-    os.environ["OPENAI_API_KEY"] = openai_key
+def categorize_summary(
+        summary, 
+        openai_key,
+        **kwargs
+    ):
     prompt = ChatPromptTemplate.from_template(
         "Given the following summary," 
         "categorize it into an appropriate category:\n\n"
@@ -14,7 +17,13 @@ def categorize_summary(summary, openai_key):
         "Summary: {summary}\n\n"
         "Category:"
     )
-    llm = ChatOpenAI(model="gpt-4o-mini")
+    # Supported various providers url here
+    model = kwargs["model"] if "model" in kwargs else "gpt-4o-mini"
+    llm = (
+        ChatOpenAI(model=model, api_key=openai_key)
+        if "openai_base" not in kwargs
+        else ChatOpenAI(model=model, base_url=kwargs["openai_base"], api_key=openai_key)
+    )
     chain = prompt | llm | StrOutputParser()
     result = chain.invoke({"summary", summary})
     return result.strip()

@@ -10,17 +10,20 @@ import os
 class CategorizeRequest(BaseModel):
     summary: str
     openai_key: str
+    provider_options: dict = {}
 
 
 class SummarizeRequest(BaseModel):
     url: str
     openai_key: str
+    provider_options: dict = {}
 
 
-# TODO: support other loaders, other llm providers
+# TODO: support other loaders
 def web_stuff_summarization( 
         url: str,
-        openai_key: str
+        openai_key: str,
+        **kwargs
     ):
     """
     Summarize a web page using the Stuff Documents chain
@@ -34,8 +37,13 @@ def web_stuff_summarization(
     prompt = ChatPromptTemplate.from_messages(
         [("system", "Write a concise summary of the following docs:\\n\\n{context}")]
     )
-    os.environ["OPENAI_API_KEY"] = openai_key
-    llm = ChatOpenAI(model="gpt-4o-mini")
+    # Supported various providers url here
+    model = kwargs["model"] if "model" in kwargs else "gpt-4o-mini"
+    llm = (
+        ChatOpenAI(model=model, api_key=openai_key)
+        if "openai_base" not in kwargs
+        else ChatOpenAI(model=model, base_url=kwargs["openai_base"], api_key=openai_key)
+    )
     chain = create_stuff_documents_chain(llm, prompt)
     loader = WebBaseLoader(url)
     docs = loader.load()
