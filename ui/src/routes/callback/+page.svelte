@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { goto } from '$app/navigation';
-    import { base } from '$app/paths';
+    import { goto } from '$lib/utils.js';
 
     let accessToken: string | null = null;
     onMount(async () => {
@@ -10,9 +9,9 @@
         console.log('access_token: ', accessToken)
         if (accessToken) {
             localStorage.setItem('accessToken', accessToken);
-            await goto(`${base}`);
+            await goto('/');
         } else {
-            await goto(`${base}/auth`);
+            await goto('/auth');
         }
         
     });

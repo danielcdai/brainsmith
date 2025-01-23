@@ -1,9 +1,8 @@
 <script lang="ts">
 import '../app.css';
 import { onMount, tick } from 'svelte';
-import { goto } from '$app/navigation';
+import { goto } from '$lib/utils.js';
 import {  getUser } from '$lib/api/auth/index.js';
-import { base } from '$app/paths';
 import { ModeWatcher } from "mode-watcher";
 
 let user = null;
@@ -11,22 +10,21 @@ let user = null;
 async function getUserInfo() {
         try {
 			if (localStorage.getItem('accessToken') === null) {
-				goto(`${base}/auth`);
+				goto('/auth');
 			} else {
 				const response = await getUser(localStorage.getItem('accessToken'));
-				console.log('response: ', response);
 				if (response.ok) {
 					const data = await response.json();
 					user = data.user;
-					goto(`${base}`);
+					goto('/');
 				} else {
-					goto(`${base}/auth`);
+					goto('/auth');
 				}
 			}
         
         } catch (error) {
             console.error("Failed to fetch user:", error);
-			goto(`${base}/auth`);
+			goto('/auth');
         }
     }
 

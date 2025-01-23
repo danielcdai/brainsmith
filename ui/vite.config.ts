@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [sveltekit()],
-    base: '/ui/',
+    base: '/ui',
 	server: {
         // fs: {
         //     allow: ['src'],
