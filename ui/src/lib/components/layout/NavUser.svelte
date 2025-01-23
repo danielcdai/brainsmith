@@ -12,6 +12,10 @@
 
 	let { user }: { user: { name: string; email: string; avatar: string } } = $props();
 	const sidebar = useSidebar();
+	function handleLogout() {
+		localStorage.setItem('accessToken', '');
+		window.location.href = '/ui/auth';
+	}
 </script>
 
 <Sidebar.Menu>
@@ -77,7 +81,8 @@
 					</DropdownMenu.Item>
 				</DropdownMenu.Group>
 				<DropdownMenu.Separator />
-				<DropdownMenu.Item>
+				<!-- FIXME Relogin only works at the 2nd time -->
+				<DropdownMenu.Item onclick={handleLogout}>
 					<LogOut />
 					Log out
 				</DropdownMenu.Item>

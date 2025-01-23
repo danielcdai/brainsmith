@@ -92,3 +92,7 @@ async def log_requests(request, call_next):
 app.mount("/ui", SPAStaticFiles(directory=settings.static_dist_path, html=True), name="ui")
 
 
+# Redirect the root path to the UI.
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/ui")
