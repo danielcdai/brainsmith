@@ -9,7 +9,7 @@ let user = null;
 
 async function getUserInfo() {
         try {
-			if (localStorage.getItem('accessToken') === null) {
+			if (localStorage.getItem('accessToken') === null || localStorage.getItem('accessToken') === '') {
 				goto('/auth');
 			} else {
 				const response = await getUser(localStorage.getItem('accessToken'));
