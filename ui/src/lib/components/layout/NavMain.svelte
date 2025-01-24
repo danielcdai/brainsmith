@@ -16,7 +16,7 @@
 		},
 		{
 			title: 'Embedding',
-			url: '#',
+			url: `${base}/embedding`,
 			icon: Inbox
 		},
 		{
