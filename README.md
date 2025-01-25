@@ -20,7 +20,18 @@ poetry run uvicorn cortext.main:app
 PYTHONPATH=$(pwd) poetry run streamlit run cortex/ui.py
 ```
 
-### Explore the Dashboard
+### Start up the Brainsmith Dashboard (Dev-Only)
+```shell
+cd ui
+npm run build
+cd ..
+poetry run uvicorn cortext.main:app
+```
+
+Then visit [Brainsmith Dashboard](http://localhost:8000).
+
+
+### Explore the Dashboard (Stable)
 1. Open the browser, go to [Brainsmith Dashboard](http://localhost:5701).
 ![image not found](docs/images/image.png)
 2. Login as admin.
