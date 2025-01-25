@@ -5,15 +5,19 @@
     import { Icons } from "../icons/index.js";
 	import { cn } from "$lib/utils.js";
     import { login } from '$lib/api/auth/index.js';
+	import { onMount } from 'svelte';
+	import { authToken } from '$lib/../stores/auth';
+	const BACKEND_URL = 'http://localhost:8000';
 	async function handleLogin(event: Event) {
-        event.preventDefault();
-		const response = await login();
-		console.log('response', response);
-		if (response.ok) {
-			const data = await response.json();
-			console.log('data', data);
-			window.location.href = data;
-		}
+        // event.preventDefault();
+		// const response = await login();
+		// console.log('response', response);
+		// if (response.ok) {
+		// 	const data = await response.json();
+		// 	console.log('data', data);
+		// 	window.location.href = data;
+		// }
+		window.location.href = `${BACKEND_URL}/auth/github/login`;
     }
 
 	let className: string | undefined | null = undefined;
@@ -27,6 +31,20 @@
 			isLoading = false;
 		}, 3000);
 	}
+	onMount(() => {
+		const urlParams = new URLSearchParams(window.location.search);
+		const token = urlParams.get('access_token');
+
+		if (token) {
+		authToken.set(token);
+
+		// Optionally persist the token in localStorage:
+		// localStorage.setItem('my_app_token', token);
+
+		// Redirect to home ("/") or anywhere else you like:
+		window.location.href = '/';
+		}
+	});
 </script>
 
 <div class={cn("grid gap-6", className)} {...$$restProps}>

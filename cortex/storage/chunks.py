@@ -2,7 +2,7 @@ import redis
 from cortex.config import settings
 
 
-r = redis.Redis(host=settings.redis_host, port=settings.redis_port, db=0)
+r = redis.Redis(host=settings.redis_host, port=settings.redis_port, db=2)
 
 
 def store_chunk_metadata(file_id, chunk_id, offset, size, storage_path):

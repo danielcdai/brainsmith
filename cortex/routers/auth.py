@@ -10,10 +10,10 @@ from cortex.admin.authenticate import (
 )
 
 
-router = APIRouter(prefix="/api/v1/auth")
+router = APIRouter(prefix="/api/v2/auth")
 client_id = settings.github_client_id
 client_secret = settings.github_client_secret
-redirect_uri = "/api/v1/auth/callback"
+redirect_uri = "/api/v2/auth/callback"
 
 # TODO: Extract the GitHub OAuth login and callback logic into a separate module
 # TODO: Encap all the constants into a class

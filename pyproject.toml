@@ -25,6 +25,7 @@ docx2txt = "^0.8"
 bs4 = "^0.0.2"
 validators = "^0.34.0"
 itsdangerous = "^2.2.0"
+python-jose = "^3.3.0"
 
 
 [[tool.poetry.source]]
