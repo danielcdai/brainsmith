@@ -70,6 +70,7 @@ app.include_router(search.router)
 app.include_router(auth.router)
 app.include_router(oauth.router)
 app.add_middleware(SessionMiddleware, secret_key="brainsmith")
+app.include_router(summarize.router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -77,7 +78,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
-app.include_router(summarize.router)
 
 # Middleware to log the requests and responses in debug.
 @app.middleware("http")

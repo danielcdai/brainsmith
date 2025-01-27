@@ -8,7 +8,7 @@ from typing import Optional
 from cortex.config import settings
 
 
-router = APIRouter(prefix="/auth")
+router = APIRouter(prefix="/api/v2/auth")
 
 
 r = redis.Redis(host=settings.redis_host, port=settings.redis_port, db=1)
@@ -88,8 +88,8 @@ def github_callback(code: Optional[str] = None, error: Optional[str] = None):
 
     my_app_jwt = jwt.encode(
         payload,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
+        settings.secret_key,
+        algorithm=settings.algorithm
     )
 
     # Optionally store the user’s JWT or user data in Redis (session approach)

@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     secret_key: str                  # For signing your own JWT
     algorithm: str = "HS256"         # JWT signing algorithm
     redirect_uri: str = "http://localhost:8000/auth/github/callback"
-    frontend_url: str = "http://localhost:8000/ui"
+    frontend_url: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(
         env_file=os.environ.get("ENV_FILE_PATH", ".env"),
