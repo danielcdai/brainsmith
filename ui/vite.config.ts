@@ -9,7 +9,7 @@ export default defineConfig({
         //     allow: ['src'],
         // },
         proxy: {
-            '/api/v1/auth/': {
+            '/auth/': {
                 target: 'http://localhost:8000', 
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api\/v1\/auth/, ''),

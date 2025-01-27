@@ -1,12 +1,13 @@
 from typing import List
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from cortex.retrieval.search import SearchRequest, search_by_collection
+from cortex.admin.authenticate import verify_bearer_token
 
 
-router = APIRouter(prefix="/api/v1/search", tags=["Search related functions"])
+router = APIRouter(prefix="/api/v1/search", tags=["Similarity Search"], dependencies=[Depends(verify_bearer_token)])
 
 
 @router.post("/", response_model=List[str])

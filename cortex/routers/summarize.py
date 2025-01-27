@@ -1,11 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from cortex.retrieval.stuff import web_stuff_summarization
 from cortex.retrieval.stuff import SummarizeRequest, CategorizeRequest
 from cortex.tools.categorize import categorize_summary
+from cortex.admin.authenticate import verify_bearer_token
 
 
-router = APIRouter(prefix="/api/v1/summarize", tags=["Search related functions"])
+router = APIRouter(prefix="/api/v1/summarize", tags=["Search related functions"], dependencies=[Depends(verify_bearer_token)])
 
 
 @router.post("/web")

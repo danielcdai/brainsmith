@@ -2,14 +2,15 @@ import os
 import uuid
 from typing import List
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi import UploadFile, File, Form
 from fastapi.responses import JSONResponse
 
 from cortex.retrieval.chunking import Chunker
+from cortex.admin.authenticate import verify_bearer_token
 
 
-router = APIRouter(prefix="/api/v1/chunk", tags=["Chunk related functions"])
+router = APIRouter(prefix="/api/v1/chunk", tags=["Chunking"], dependencies=[Depends(verify_bearer_token)])
 
 
 @router.post("/", response_model=List[str])

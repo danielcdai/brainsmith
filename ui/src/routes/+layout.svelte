@@ -1,18 +1,23 @@
 <script lang="ts">
 import '../app.css';
-import { onMount, tick } from 'svelte';
+import { onMount, onDestroy, tick } from 'svelte';
 import { goto } from '$lib/utils.js';
 import {  getUser } from '$lib/api/auth/index.js';
 import { ModeWatcher } from "mode-watcher";
+import { authToken } from '../stores/auth.js';
+// import { authToken } from "~/stores/auth.js";
 
 let user = null;
-
+let accessToken;
+const unsubscribe = authToken.subscribe(value => {
+	accessToken = value;
+});
 async function getUserInfo() {
         try {
-			if (localStorage.getItem('accessToken') === null || localStorage.getItem('accessToken') === '') {
+			if (!accessToken) {
 				goto('/auth');
 			} else {
-				const response = await getUser(localStorage.getItem('accessToken'));
+				const response = await getUser(accessToken);
 				if (response.ok) {
 					const data = await response.json();
 					user = data.user;
@@ -36,7 +41,9 @@ onMount(async () => {
 	loaded = true;
 });
 
-
+onDestroy(() => {
+	unsubscribe();
+});
   
 
 </script>

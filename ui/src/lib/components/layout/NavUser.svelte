@@ -9,11 +9,12 @@
 	import CreditCard from "lucide-svelte/icons/credit-card";
 	import LogOut from "lucide-svelte/icons/log-out";
 	import Sparkles from "lucide-svelte/icons/sparkles";
+	import { authToken } from "$lib/../stores/auth.js";
 
 	let { user }: { user: { name: string; email: string; avatar: string } } = $props();
 	const sidebar = useSidebar();
 	function handleLogout() {
-		localStorage.setItem('accessToken', '');
+		authToken.update(() => '');
 		window.location.href = '/ui/auth';
 	}
 </script>

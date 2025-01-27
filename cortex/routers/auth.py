@@ -10,29 +10,30 @@ import httpx
 from cortex.config import settings
 from cortex.admin.authenticate import (
     get_github_auth_url, 
-    get_github_callback_response, 
-    github_user_info
+    github_user_info,
+    verify_jwt
 )
 
 
-router = APIRouter(prefix="/api/v1/auth")
+router = APIRouter(prefix="/auth",  tags=["Authentication"])
 client_id = settings.github_client_id
 client_secret = settings.github_client_secret
-redirect_uri = "/api/v1/auth/callback"
+redirect_uri = "/auth/github/callback"
 r = redis.Redis(host=settings.redis_host, port=settings.redis_port, db=1)
 
 # TODO: Extract the GitHub OAuth login and callback logic into a separate module
 # TODO: Encap all the constants into a class
 
 # TODO: Do not return url anymore, do the authentication request here
-@router.get("/login")
+@router.get("/github/login")
 async def github_login(request: Request):
     """Redirect user to GitHub OAuth authorization page."""
     base_url = str(request.base_url).rstrip("/")
+    print(await get_github_auth_url(base_url, settings.github_client_id, redirect_uri))
     return await get_github_auth_url(base_url, settings.github_client_id, redirect_uri)
 
 
-@router.get("/callback")
+@router.get("/github/callback")
 async def github_callback(request: Request, code: str, error: Optional[str] = None):
     """Handle GitHub OAuth callback and exchange code for access token."""
     if error:
@@ -57,7 +58,7 @@ async def github_callback(request: Request, code: str, error: Optional[str] = No
         response = client.post(token_url, data=data, headers=headers)
         response.raise_for_status()
         token_json = response.json()
-        print(token_json)
+        # print(token_json)
 
     github_access_token = token_json.get("access_token")
     if not github_access_token:
@@ -112,7 +113,11 @@ async def github_callback(request: Request, code: str, error: Optional[str] = No
     #
     # Here, we'll do a simple redirect with the token as a query param.
     # ----------------------------------------------------------------
-    frontend_redirect_url = f"/ui/callback?access_token={my_app_jwt}"
+
+    # For packaged frontend, use the following URL
+    # frontend_redirect_url = f"/ui/callback?access_token={my_app_jwt}"
+    # For standalone frontend, use the following URL
+    frontend_redirect_url = f"http://localhost:5173/ui/callback?access_token={my_app_jwt}"
     logging.info(f"User logged in with access token, redirect to callback URL")
     return RedirectResponse(url=frontend_redirect_url)
      
@@ -152,19 +157,3 @@ async def verify_token(token: str):
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
 
-
-def verify_jwt(token: str) -> dict:
-    """
-    A simple dependency to verify your app's JWT.
-    In practice, you'll probably want a more robust approach,
-    plus handle token revocation, expiration, etc.
-    """
-    try:
-        payload = jwt.decode(
-            token,
-            settings.secret_key,
-            algorithms=[settings.algorithm]
-        )
-        return payload  # e.g. { "sub": "...", "exp": "...", ... }
-    except JWTError:
-        raise ValueError("Invalid or expired JWT")

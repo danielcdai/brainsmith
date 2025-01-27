@@ -18,7 +18,12 @@ const config = {
 				page: 'build',
       			assets: 'build'
 			}
-		)
+		),
+		alias: {
+			// "@/*": "src/lib/*",
+			// "$/*": "src/routes/*",
+			"~/*": "src/*",
+		}
 	}
 
 };

@@ -1,12 +1,13 @@
 import uuid
 import threading
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from cortex.retrieval.embedding import *
+from cortex.admin.authenticate import verify_bearer_token
 
 
-router = APIRouter(prefix="/api/v1/embedding", tags=["Embedding related functions"])
+router = APIRouter(prefix="/api/v1/embedding", tags=["Embedding"], dependencies=[Depends(verify_bearer_token)])
 
 
 @router.post("/start", status_code=202)

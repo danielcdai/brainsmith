@@ -6,12 +6,11 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.staticfiles import StaticFiles
-from starlette.responses import RedirectResponse
 from uvicorn.config import LOGGING_CONFIG
 
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware 
-from cortex.routers import embedding, chunk, search, summarize, auth, oauth
+from cortex.routers import embedding, chunk, search, summarize, auth
 from cortex.config import settings
 
 class SPAStaticFiles(StaticFiles):
@@ -68,7 +67,6 @@ app.include_router(embedding.router)
 app.include_router(chunk.router)
 app.include_router(search.router)
 app.include_router(auth.router)
-app.include_router(oauth.router)
 app.add_middleware(SessionMiddleware, secret_key="brainsmith")
 app.include_router(summarize.router)
 app.add_middleware(
@@ -89,11 +87,38 @@ async def log_requests(request, call_next):
     return response
 
 
+from fastapi import Depends, Request
+
+def verify_bearer_token(request: Request):
+    from cortex.admin.authenticate import verify_jwt
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        try:
+            return verify_jwt(token)
+        except ValueError as e:
+            raise HTTPException(status_code=401, detail=str(e))
+    else:
+        raise HTTPException(status_code=401, detail="Invalid or missing token")
+
+@app.get("/api")
+def protected_endpoint(payload: dict = Depends(verify_bearer_token)) -> dict:
+    """
+    Example usage:
+    The frontend must send the token in the Authorization header as Bearer token.
+    e.g. Authorization: Bearer <my_app_jwt>
+
+    In real-world usage, you'd do something like:
+      def protected_endpoint(payload: dict = Depends(verify_jwt)):
+          return ...
+    """
+    return {"message": "You are authorized!", "payload": payload}
 # Export the UI build as static files, served under /ui path.
-app.mount("/ui", SPAStaticFiles(directory=settings.static_dist_path, html=True), name="ui")
+# app.mount("/ui", SPAStaticFiles(directory=settings.static_dist_path, html=True), name="ui")
 
 
 # Redirect the root path to the UI.
-@app.get("/")
-async def root():
-    return RedirectResponse(url="/ui")
+# For development, simply comment this out.
+# @app.get("/")
+# async def root():
+#     return RedirectResponse(url="/ui")
