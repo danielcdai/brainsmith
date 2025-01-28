@@ -3,11 +3,12 @@ from typing import Optional
 from fastapi import  HTTPException,  APIRouter, Request
 from fastapi.responses import RedirectResponse, JSONResponse
 import time
-from jose import jwt, JWTError
+from jose import jwt
 import redis
 import httpx
 
 from cortex.config import settings
+from datetime import datetime
 from cortex.admin.authenticate import (
     get_github_auth_url, 
     github_user_info,
@@ -29,7 +30,6 @@ r = redis.Redis(host=settings.redis_host, port=settings.redis_port, db=1)
 async def github_login(request: Request):
     """Redirect user to GitHub OAuth authorization page."""
     base_url = str(request.base_url).rstrip("/")
-    print(await get_github_auth_url(base_url, settings.github_client_id, redirect_uri))
     return await get_github_auth_url(base_url, settings.github_client_id, redirect_uri)
 
 
@@ -129,31 +129,14 @@ async def get_user(access_token: str = None):
     if not access_token:
         raise HTTPException(status_code=401, detail="User not logged in")
     # Fetch user info
-    user_data = await github_user_info(access_token)
-    return JSONResponse(content={"user": user_data})
-
-
-# TODO: Do the verification for all the requests towards the protected endpoints
-@router.get("/verify")
-async def verify_token(token: str):
-    """Verify the JWT token and return the saved user info from Redis."""
-    try:
-        payload = verify_jwt(token)
-        github_user_id = payload.get("sub")
-        if not github_user_id:
-            raise HTTPException(status_code=400, detail="Invalid token payload")
-
-        # Retrieve the GitHub access token from Redis
-        github_access_token = r.get(f"github_token:{github_user_id}")
-        if not github_access_token:
-            raise HTTPException(status_code=404, detail="Token not found in Redis")
-
-        # Retrieve the user info from Redis
-        user_jwt = r.get(f"user_jwt:{github_user_id}")
-        if not user_jwt:
-            raise HTTPException(status_code=404, detail="User info not found in Redis")
-
-        return JSONResponse(content={"user_id": github_user_id, "jwt": user_jwt.decode()})
-    except ValueError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+    payload = verify_jwt(access_token)
+    iat = datetime.fromtimestamp(payload["iat"]).strftime('%Y%m%d-%H:%M:%S')
+    exp = datetime.fromtimestamp(payload["exp"]).strftime('%Y%m%d-%H:%M:%S')
+    result = {
+        "user_id": payload['sub'],
+        "iat": iat,
+        "exp": exp,
+        "provider": payload["provider"],
+    }
+    return JSONResponse(content=result)
 

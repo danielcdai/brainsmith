@@ -20,7 +20,7 @@ async function getUserInfo() {
 				const response = await getUser(accessToken);
 				if (response.ok) {
 					const data = await response.json();
-					user = data.user;
+					user = data;
 					goto('/');
 				} else {
 					goto('/auth');
@@ -53,5 +53,5 @@ onDestroy(() => {
 </svelte:head>
 <ModeWatcher defaultMode={"dark"} themeColors={{ dark: "#000000", light: "#ffffff" }} />
 {#if loaded}
-	<slot />
+	<slot {user}/>
 {/if}

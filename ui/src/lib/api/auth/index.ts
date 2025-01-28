@@ -22,7 +22,7 @@ export const callback = async (data:any) => {
 }
 
 export const getUser = async (access_token:string) => {
-    const url = BACKEND_URL + '/auth/github/user?access_token='+access_token;
+    const url = BACKEND_URL + '/auth/user?access_token='+access_token;
     return await fetch(url, {
         method: 'GET',
         credentials: 'include'

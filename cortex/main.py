@@ -3,7 +3,7 @@ import logging.config
 import os
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.staticfiles import StaticFiles
 from uvicorn.config import LOGGING_CONFIG
@@ -87,8 +87,6 @@ async def log_requests(request, call_next):
     return response
 
 
-from fastapi import Depends, Request
-
 def verify_bearer_token(request: Request):
     from cortex.admin.authenticate import verify_jwt
     auth_header = request.headers.get("Authorization")
@@ -101,18 +99,7 @@ def verify_bearer_token(request: Request):
     else:
         raise HTTPException(status_code=401, detail="Invalid or missing token")
 
-@app.get("/api")
-def protected_endpoint(payload: dict = Depends(verify_bearer_token)) -> dict:
-    """
-    Example usage:
-    The frontend must send the token in the Authorization header as Bearer token.
-    e.g. Authorization: Bearer <my_app_jwt>
 
-    In real-world usage, you'd do something like:
-      def protected_endpoint(payload: dict = Depends(verify_jwt)):
-          return ...
-    """
-    return {"message": "You are authorized!", "payload": payload}
 # Export the UI build as static files, served under /ui path.
 # app.mount("/ui", SPAStaticFiles(directory=settings.static_dist_path, html=True), name="ui")
 
