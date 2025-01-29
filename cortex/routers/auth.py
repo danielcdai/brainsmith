@@ -61,6 +61,7 @@ async def github_callback(request: Request, code: str, error: Optional[str] = No
         # print(token_json)
 
     github_access_token = token_json.get("access_token")
+    github_refresh_token = token_json.get("refresh_token", None)
     if not github_access_token:
         return JSONResponse(status_code=400,
                             content={"error": "Failed to obtain GitHub token"})
@@ -81,7 +82,6 @@ async def github_callback(request: Request, code: str, error: Optional[str] = No
     # (In a real app, you'd probably store a full user record, or
     #  match to an internal user ID, etc.)
     # ----------------------------------------------------------------
-    r.set(f"github_token:{github_user_id}", github_access_token)
 
     # ----------------------------------------------------------------
     # Generate YOUR OWN JWT token for the user to authenticate with
@@ -101,8 +101,13 @@ async def github_callback(request: Request, code: str, error: Optional[str] = No
         algorithm=settings.algorithm
     )
 
+    r.hset(f'user:{github_user_id}', mapping={
+        "github_access_token": github_access_token,
+        "github_refresh_token": github_refresh_token if github_refresh_token else "",
+        "user_jwt": my_app_jwt
+    })
+
     # Optionally store the user’s JWT or user data in Redis (session approach)
-    r.set(f"user_jwt:{github_user_id}", my_app_jwt)
 
     # ----------------------------------------------------------------
     # Return the JWT to the frontend.
@@ -132,7 +137,19 @@ async def get_user(access_token: str = None):
     payload = verify_jwt(access_token)
     iat = datetime.fromtimestamp(payload["iat"]).strftime('%Y%m%d-%H:%M:%S')
     exp = datetime.fromtimestamp(payload["exp"]).strftime('%Y%m%d-%H:%M:%S')
+    token_id = f'user:{payload["sub"]}'
+    token_info = {k.decode(): v.decode() for k, v in r.hgetall(token_id).items()}
+    github_access_token = token_info['github_access_token']
+    if not token_info:
+        raise HTTPException(status_code=401, detail="User not logged in")
+    user_data = await github_user_info(github_access_token)
+   
     result = {
+        "user": {
+            "name": user_data['login'],
+            "email": user_data["email"] if user_data.get("email") else "Non-Email User",
+            "avatar": user_data["avatar_url"],
+        },
         "user_id": payload['sub'],
         "iat": iat,
         "exp": exp,

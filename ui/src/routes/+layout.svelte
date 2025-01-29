@@ -20,7 +20,7 @@ async function getUserInfo() {
 				const response = await getUser(accessToken);
 				if (response.ok) {
 					const data = await response.json();
-					user = data;
+					user = data.user;
 					goto('/');
 				} else {
 					goto('/auth');

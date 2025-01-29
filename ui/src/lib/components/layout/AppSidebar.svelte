@@ -144,6 +144,15 @@
 		collapsible = "icon",
 		...restProps
 	}: ComponentProps<typeof Sidebar.Root> = $props();
+	/**
+	 * Trial for user data binding
+	*/
+	// let {
+	// 	ref = $bindable(null),
+	// 	collapsible = "icon",
+	// 	user,
+	// 	...restProps
+	// }: ComponentProps<typeof Sidebar.Root> & { user: { name: string; email: string; avatar: string } } = $props();
 </script>
 
 <Sidebar.Root bind:ref {collapsible} {...restProps}>
@@ -154,7 +163,7 @@
 		<NavMain/>
 	</Sidebar.Content>
 	<Sidebar.Footer>
-		<NavUser user={data.user} />
+		<NavUser user={user} />
 	</Sidebar.Footer>
 	<Sidebar.Rail />
 </Sidebar.Root>
