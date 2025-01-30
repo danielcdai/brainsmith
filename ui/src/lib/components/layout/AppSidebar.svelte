@@ -8,14 +8,26 @@
 	import Map from "lucide-svelte/icons/map";
 	import Settings2 from "lucide-svelte/icons/settings-2";
 	import SquareTerminal from "lucide-svelte/icons/square-terminal";
+	import { authToken } from "$lib/../stores/auth.js";
+	import { get } from "svelte/store";
+	import { BACKEND_URL } from "$lib/constants.js";
 
+	let token = get(authToken);
+	if (!token) {
+		// Redirect to login page
+		window.location.href = "/auth";
+	}
+    const url = BACKEND_URL + '/auth/user'
+	const response = await fetch(`${url}?access_token=${token}`);
+	const result = await response.json();
+	const userInfo = result.user;
 	
 	// This is sample data.
 	const data = {
 		user: {
-			name: "test",
-			email: "test",
-			avatar: "/avatars/shadcn.jpg",
+			name: userInfo.name,
+			email: userInfo.email,
+			avatar: userInfo.avatar,
 		},
 		teams: [
 			{
@@ -163,7 +175,7 @@
 		<NavMain/>
 	</Sidebar.Content>
 	<Sidebar.Footer>
-		<NavUser user={user} />
+		<NavUser user={data.user} />
 	</Sidebar.Footer>
 	<Sidebar.Rail />
 </Sidebar.Root>
