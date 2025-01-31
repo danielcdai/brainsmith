@@ -10,7 +10,7 @@ from uvicorn.config import LOGGING_CONFIG
 
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware 
-from cortex.routers import embedding, chunk, search, summarize, auth
+from cortex.routers import embedding, chunk, search, summarize, auth, oauth
 from cortex.config import settings
 
 class SPAStaticFiles(StaticFiles):
@@ -69,6 +69,7 @@ app.include_router(search.router)
 app.include_router(auth.router)
 app.add_middleware(SessionMiddleware, secret_key="brainsmith")
 app.include_router(summarize.router)
+app.include_router(oauth.router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
