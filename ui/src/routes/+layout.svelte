@@ -50,6 +50,7 @@ onDestroy(() => {
 
 <svelte:head>
 	<title>Blacksmith</title>
+	<meta name="description" content="Dashboard Application for Brainsmith" />
 </svelte:head>
 <ModeWatcher defaultMode={"dark"} themeColors={{ dark: "#000000", light: "#ffffff" }} />
 {#if loaded}
