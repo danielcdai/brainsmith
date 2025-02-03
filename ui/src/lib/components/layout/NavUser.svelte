@@ -10,13 +10,24 @@
 	import LogOut from "lucide-svelte/icons/log-out";
 	import Sparkles from "lucide-svelte/icons/sparkles";
 	import { authToken } from "$lib/../stores/auth.js";
+	import { onMount } from "svelte";
+	import { get } from "svelte/store";
+	import { BACKEND_URL } from "$lib/constants.js";
 
-	let { user }: { user: { name: string; email: string; avatar: string } } = $props();
+	let user = $state({ name: '', email: '', avatar: '' });
 	const sidebar = useSidebar();
 	function handleLogout() {
 		authToken.update(() => '');
 		window.location.href = '/ui/auth';
 	}
+
+	onMount(async () => {
+		let token = get(authToken);
+		let url = BACKEND_URL + '/auth/user'
+		let response = await fetch(`${url}?access_token=${token}`);
+		let result = await response.json();
+		user = result.user;
+	});
 </script>
 
 <Sidebar.Menu>
