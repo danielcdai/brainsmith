@@ -3,6 +3,9 @@ import warnings
 from fastapi import Request, HTTPException
 from cortex.config import settings
 from jose import JWTError, jwt
+from sqlalchemy.orm import Session
+from cortex.admin.security import verify_password, hash_password
+from cortex.storage.session import User
 
 
 async def get_github_auth_url(
@@ -135,3 +138,27 @@ async def verify_github_token(user_id: str, redis_conn):
             else:
                 # Force user to re-login
                 raise HTTPException(status_code=401, detail="GitHub token invalid, re-login required.")
+
+
+def authenticate_user(db: Session, email: str, password: str) -> User:
+    """
+    Authenticate a user based on email and password.
+    Returns the user if authentication is successful, otherwise None.
+    """
+    user = db.query(User).filter(User.email == email).first()
+    if user and verify_password(password, user.password_hash):
+        return user
+    return None
+
+
+def create_user(db: Session, email: str, password: str) -> User:
+    """
+    Create a new user in the database with a hashed password.
+    """
+    hashed_password = hash_password(password)
+    new_user = User(email=email, password_hash=hashed_password)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+

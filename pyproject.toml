@@ -28,6 +28,10 @@ itsdangerous = "^2.2.0"
 python-jose = "^3.3.0"
 authlib = "^1.4.1"
 pyjwt = "^2.10.1"
+sqlalchemy = "^2.0.37"
+passlib = "^1.7.4"
+email-validator = "^2.2.0"
+psycopg2-binary = "^2.9.10"
 
 
 [[tool.poetry.source]]

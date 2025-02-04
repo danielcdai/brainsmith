@@ -1,19 +1,28 @@
 import logging
 from typing import Optional
-from fastapi import  HTTPException,  APIRouter, Request
+from fastapi import  HTTPException,  APIRouter, Request, Depends
 from fastapi.responses import RedirectResponse, JSONResponse
+from sqlalchemy.orm import Session
 import time
 from jose import jwt
 import redis
 import httpx
 
 from cortex.config import settings
+from cortex.admin.security import create_access_token
+from cortex.admin.authenticate import authenticate_user, create_user
+from cortex.admin.model import (
+    LoginRequest, 
+    SignupRequest, 
+    SignupResponse
+)
 from datetime import datetime
 from cortex.admin.authenticate import (
     get_github_auth_url, 
     github_user_info,
     verify_jwt
 )
+from cortex.storage.session import get_db, User
 
 
 router = APIRouter(prefix="/auth",  tags=["Authentication"])
@@ -22,6 +31,38 @@ client_secret = settings.github_client_secret
 redirect_uri = "/auth/github/callback"
 r = redis.Redis(host=settings.redis_host, port=settings.redis_port, db=1)
 
+# Plain username/password login
+@router.post("/login")
+def login(request: LoginRequest, db: Session = Depends(get_db)):
+    """
+    Login route for obtaining an access token after verifying credentials.
+    """
+    user = authenticate_user(db, request.email, request.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Generate an access token
+    access_token = create_access_token({"sub": user.email})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/signup", response_model=SignupResponse)
+def signup(request: SignupRequest, db: Session = Depends(get_db)):
+    """
+    Sign-up route for creating a new user and storing their credentials securely.
+    """
+    user = db.query(User).filter(User.email == request.email).first()
+    if user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    # Create the new user
+    new_user = create_user(db, request.email, request.password)
+    
+    # Generate access token for the new user
+    access_token = create_access_token({"sub": new_user.email})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+# Oauth 2.0 flow (legacy, runable)
 # TODO: Extract the GitHub OAuth login and callback logic into a separate module
 # TODO: Encap all the constants into a class
 

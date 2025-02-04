@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     file_collection_folder: str = "tests/corpus"
     redis_host: str = "localhost"
     redis_port: int = 6379
+    postgre_host: str = "localhost"
+    postgre_port: int = 5432
+    postgres_password: str
     github_client_id: str
     github_client_secret: str 
     secret_key: str                  # For signing your own JWT
