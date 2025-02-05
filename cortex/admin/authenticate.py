@@ -109,6 +109,9 @@ async def verify_github_token(user_id: str, redis_conn):
     github_access_token = tokens.get(b"github_access_token", b"").decode()
     github_refresh_token = tokens.get(b"github_refresh_token", b"").decode()
 
+    if not github_access_token and not github_refresh_token:
+        return True
+
     # Test an API call
     async with httpx.AsyncClient() as client:
         resp = await client.get(

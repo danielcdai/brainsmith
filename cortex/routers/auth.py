@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from fastapi import  HTTPException,  APIRouter, Request, Depends
 from fastapi.responses import RedirectResponse, JSONResponse
+import starlette.status as status
 from sqlalchemy.orm import Session
 import time
 from jose import jwt
@@ -43,10 +44,12 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     
     # Generate an access token
     access_token = create_access_token({"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+    # TODO: Make the frontend URL configurable
+    frontend_redirect_url = f"http://localhost:5173/ui/callback?access_token={access_token}"
+    return RedirectResponse(url=frontend_redirect_url, status_code=status.HTTP_302_FOUND)
 
 
-@router.post("/signup", response_model=SignupResponse)
+@router.post("/signup")
 def signup(request: SignupRequest, db: Session = Depends(get_db)):
     """
     Sign-up route for creating a new user and storing their credentials securely.
@@ -59,7 +62,9 @@ def signup(request: SignupRequest, db: Session = Depends(get_db)):
     
     # Generate access token for the new user
     access_token = create_access_token({"sub": new_user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+    # TODO: Make the frontend URL configurable
+    frontend_redirect_url = f"http://localhost:5173/ui/callback?access_token={access_token}"
+    return RedirectResponse(url=frontend_redirect_url, status_code=status.HTTP_302_FOUND)
 
 
 # Oauth 2.0 flow (legacy, runable)
@@ -136,11 +141,7 @@ async def github_callback(request: Request, code: str, error: Optional[str] = No
         "provider": "github",
     }
 
-    my_app_jwt = jwt.encode(
-        payload,
-        settings.secret_key,
-        algorithm=settings.algorithm
-    )
+    my_app_jwt = create_access_token(payload)
 
     r.hset(f'user:{github_user_id}', mapping={
         "github_access_token": github_access_token,
@@ -168,6 +169,7 @@ async def github_callback(request: Request, code: str, error: Optional[str] = No
     return RedirectResponse(url=frontend_redirect_url)
      
 
+# TODO: Make it depend on the JWT token verification
 @router.get("/user")
 async def get_user(access_token: str = None):
     """Return the current logged-in user's information."""

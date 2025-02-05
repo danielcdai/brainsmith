@@ -4,19 +4,60 @@
 	import * as Card from "$lib/components/ui/card/index.js";
 	import { Label } from "$lib/components/ui/label/index.js";
 	import { Input } from "$lib/components/ui/input/index.js";
-
+	import { BACKEND_URL } from "$lib/constants.js";
     import { login } from '$lib/api/auth/index.js';
+
 	async function handleLogin(event: Event) {
         event.preventDefault();
 		const response = await login();
-		console.log('response', response);
 		if (response.ok) {
 			const data = await response.json();
-			console.log('data', data);
+			console.log(data);
 			window.location.href = data;
 		}
     }
 
+	async function handleSignIn(event: Event) {
+		event.preventDefault();
+		const email = (document.getElementById('email') as HTMLInputElement).value;
+		const password = (document.getElementById('password') as HTMLInputElement).value;
+
+		const response = await fetch(BACKEND_URL + '/auth/login', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ "email": email, "password": password })
+		});
+
+		if (response.ok) {
+			// const data = await response.json();
+			window.location.href = response.url;
+		} else {
+			console.error('Login failed');
+		}
+	}
+
+	async function handleCreateAccount(event: Event) {
+		event.preventDefault();
+		const email = (document.getElementById('email') as HTMLInputElement).value;
+		const password = (document.getElementById('password') as HTMLInputElement).value;
+
+		const response = await fetch(BACKEND_URL + '/auth/signup', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ "email": email, "password": password })
+		});
+
+		if (response.ok) {
+			const data = await response.json();
+			window.location.href = data;
+		} else {
+			console.error('Registration failed');
+		}
+	}
 </script>
 
 <Card.Root>
@@ -33,8 +74,8 @@
 			<Label for="password">Password</Label>
 			<Input id="password" type="password" />
 		</div>
-		<Button class="w-full">Sign In</Button>
-		<Button class="w-full" variant="secondary">Create account</Button>
+		<Button class="w-full" onclick={handleSignIn}>Sign In</Button>
+		<Button class="w-full" variant="secondary" onclick={handleCreateAccount}>Create account</Button>
 		<div class="relative">
 			<div class="absolute inset-0 flex items-center">
 				<!-- svelte-ignore element_invalid_self_closing_tag -->
