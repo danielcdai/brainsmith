@@ -12,14 +12,11 @@ from cortex.config import settings, OAUTH_PROVIDERS
 from cortex.constants import ERROR_MESSAGES
 import re
 import uuid
-from datetime import timedelta
-from typing import Optional
-import logging
-import uuid
 import jwt
 
 from datetime import UTC, datetime, timedelta
 from typing import Optional, Union
+from cortex.models.users import Users
 
 
 
@@ -110,49 +107,58 @@ class OAuthManager:
         if not user_data:
             log.warning(f"OAuth callback failed, user data is missing: {token}")
             raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
-
+        provider_sub = f"{provider}@{sub}"
         sub = user_data.get(OAUTH_PROVIDERS[provider].get("sub_claim", "sub"))
         if not sub:
             log.warning(f"OAuth callback failed, sub is missing: {user_data}")
             raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
+
         email = user_data.get("email", "Non-Email User").lower()
         if not email:
             log.warning(f"OAuth callback failed, email is missing: {user_data}")
             raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
 
+        user = Users.get_user_by_oauth_sub(provider_sub)
 
-        picture_url = user_data.get(
-            "picture", 
-            # For Microsoft, the picture URL is different
-            OAUTH_PROVIDERS[provider].get("picture_url", "")
-        )
-        if picture_url:
-            # Download the profile image into a base64 string
-            try:
-                access_token = token.get("access_token")
-                get_kwargs = {}
-                if access_token:
-                    get_kwargs["headers"] = {
-                        "Authorization": f"Bearer {access_token}",
-                    }
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(picture_url, **get_kwargs) as resp:
-                        picture = await resp.read()
-                        base64_encoded_picture = base64.b64encode(
-                            picture
-                        ).decode("utf-8")
-                        guessed_mime_type = mimetypes.guess_type(picture_url)[0]
-                        if guessed_mime_type is None:
-                            # assume JPG, browsers are tolerant enough of image formats
-                            guessed_mime_type = "image/jpeg"
-                        picture_url = f"data:{guessed_mime_type};base64,{base64_encoded_picture}"
-            except Exception as e:
-                log.error(
-                    f"Error downloading profile image '{picture_url}': {e}"
+        if not user:
+            # Check if the user exists by email
+            user = Users.get_user_by_email(email)
+            if user:
+                # Update the user with the new oauth sub
+                Users.update_user_oauth_sub_by_id(user.id, provider_sub)
+            else:
+                picture_url = user_data.get(
+                    "picture", 
+                    # For Microsoft, the picture URL is different
+                    OAUTH_PROVIDERS[provider].get("picture_url", "")
                 )
-                picture_url = ""
-        if not picture_url:
-            picture_url = "/user.png"
+                if picture_url:
+                    # Download the profile image into a base64 string
+                    try:
+                        access_token = token.get("access_token")
+                        get_kwargs = {}
+                        if access_token:
+                            get_kwargs["headers"] = {
+                                "Authorization": f"Bearer {access_token}",
+                            }
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(picture_url, **get_kwargs) as resp:
+                                picture = await resp.read()
+                                base64_encoded_picture = base64.b64encode(
+                                    picture
+                                ).decode("utf-8")
+                                guessed_mime_type = mimetypes.guess_type(picture_url)[0]
+                                if guessed_mime_type is None:
+                                    # assume JPG, browsers are tolerant enough of image formats
+                                    guessed_mime_type = "image/jpeg"
+                                picture_url = f"data:{guessed_mime_type};base64,{base64_encoded_picture}"
+                    except Exception as e:
+                        log.error(
+                            f"Error downloading profile image '{picture_url}': {e}"
+                        )
+                        picture_url = ""
+                if not picture_url:
+                    picture_url = "/user.png"
 
         jwt_token = create_token(
             data={"id": str(uuid.uuid4())},
