@@ -1,24 +1,9 @@
 from cortex.storage.session import Base, get_db
-from sqlalchemy import BigInteger, Column, String, Text
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
+from datetime import datetime
 from typing import Optional
 from contextlib import contextmanager
-
-
-class User(Base):
-    __tablename__ = "user"
-
-    id = Column(String, primary_key=True)
-    name = Column(String)
-    email = Column(String)
-    # Disable role for now
-    # role = Column(String)
-    profile_image_url = Column(Text)
-
-    last_active_at = Column(BigInteger)
-    updated_at = Column(BigInteger)
-    created_at = Column(BigInteger)
-    oauth_sub = Column(Text, unique=True)
+from cortex.storage.session import User
 
 
 class UserModel(BaseModel):
@@ -71,3 +56,28 @@ class UsersTable:
             return None
 
 Users = UsersTable()
+
+
+class UserCreate(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    profile_image_url: Optional[str] = None
+    last_active_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    oauth_sub: Optional[str] = None
+
+    class Config:
+        orm_mode = True

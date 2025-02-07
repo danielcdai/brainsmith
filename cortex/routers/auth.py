@@ -1,29 +1,25 @@
 import logging
 from typing import Optional
-from fastapi import  HTTPException,  APIRouter, Request, Depends
+from fastapi import  HTTPException,  APIRouter, Request, Depends, Cookie, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 import starlette.status as status
 from sqlalchemy.orm import Session
 import time
 from jose import jwt
+from jwt import PyJWTError
 import redis
 import httpx
 
 from cortex.config import settings
-from cortex.admin.security import create_access_token
-from cortex.admin.authenticate import authenticate_user, create_user
-from cortex.admin.model import (
-    LoginRequest, 
-    SignupRequest, 
-    SignupResponse
-)
-from datetime import datetime
+from cortex.admin.security import create_access_token, verify_password, hash_password
+from datetime import datetime, timezone
 from cortex.admin.authenticate import (
     get_github_auth_url, 
     github_user_info,
     verify_jwt
 )
 from cortex.storage.session import get_db, User
+from cortex.models.users import UserResponse, UserCreate, LoginRequest
 
 
 router = APIRouter(prefix="/auth",  tags=["Authentication"])
@@ -32,39 +28,75 @@ client_secret = settings.github_client_secret
 redirect_uri = "/auth/github/callback"
 r = redis.Redis(host=settings.redis_host, port=settings.redis_port, db=1)
 
+
+def get_current_user(token: str = Cookie(None), db=Depends(get_db)) -> User:
+    """
+    Extract the current user from the JWT token stored in the cookie.
+    """
+    if token is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        user_id: int = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    user: User = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    # Optionally update the last_active_at timestamp
+    user.last_active_at = datetime.now(timezone.utc)
+    db.commit()
+    return user
+
+
 # Plain username/password login
-@router.post("/login")
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+@router.post("/login", response_model=UserResponse)
+def login(login_data: LoginRequest, response: Response, db=Depends(get_db)):
     """
-    Login route for obtaining an access token after verifying credentials.
+    Log in an existing user by verifying credentials.
     """
-    user = authenticate_user(db, request.email, request.password)
+    user: User = db.query(User).filter(User.email == login_data.email).first()
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    # Generate an access token
-    access_token = create_access_token({"sub": user.email})
-    # TODO: Make the frontend URL configurable
-    frontend_redirect_url = f"http://localhost:5173/ui/callback?access_token={access_token}"
-    return RedirectResponse(url=frontend_redirect_url, status_code=status.HTTP_302_FOUND)
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+    if not user.hashed_password or not verify_password(login_data.password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+
+    # Update last active time
+    user.last_active_at = datetime.now(timezone.utc)
+    db.commit()
+
+    access_token = create_access_token(data={"sub": user.id})
+    response.set_cookie(key="token", value=access_token, httponly=True)
+    return user
 
 
-@router.post("/signup")
-def signup(request: SignupRequest, db: Session = Depends(get_db)):
+@router.post("/signup", response_model=UserResponse)
+def signup(user: UserCreate, response: Response, db: Session = Depends(get_db)):
     """
-    Sign-up route for creating a new user and storing their credentials securely.
+    Create a new user with a hashed password.
     """
-    user = db.query(User).filter(User.email == request.email).first()
-    if user:
+    # Check if user already exists
+    db_user = db.query(User).filter(User.email == user.email).first()
+    if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    # Create the new user
-    new_user = create_user(db, request.email, request.password)
-    
-    # Generate access token for the new user
-    access_token = create_access_token({"sub": new_user.email})
-    # TODO: Make the frontend URL configurable
-    frontend_redirect_url = f"http://localhost:5173/ui/callback?access_token={access_token}"
-    return RedirectResponse(url=frontend_redirect_url, status_code=status.HTTP_302_FOUND)
+    hashed_pw = hash_password(user.password)
+    new_user = User(
+        name=user.name,
+        email=user.email,
+        hashed_password=hashed_pw,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    # Issue JWT and set it as an HTTP‑only cookie
+    access_token = create_access_token(data={"sub": new_user.id})
+    response.set_cookie(key="token", value=access_token, httponly=True)
+    return new_user
 
 
 # Oauth 2.0 flow (legacy, runable)
