@@ -1,21 +1,22 @@
 <script lang="ts">
-	import { Icons } from "$lib/components/ui/icons/index.js";
-	import { Button } from "$lib/components/ui/button/index.js";
-	import * as Card from "$lib/components/ui/card/index.js";
-	import { Label } from "$lib/components/ui/label/index.js";
-	import { Input } from "$lib/components/ui/input/index.js";
-	import { BACKEND_URL } from "$lib/constants.js";
-    import { login } from '$lib/api/auth/index.js';
+	import { Icons } from '$lib/components/ui/icons/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import { Label } from '$lib/components/ui/label/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import { BACKEND_URL } from '$lib/constants.js';
+	import { login } from '$lib/api/auth/index.js';
+	import * as Popover from '$lib/components/ui/popover/index.js';
 
 	async function handleLogin(event: Event) {
-        event.preventDefault();
+		event.preventDefault();
 		const response = await login();
 		if (response.ok) {
 			const data = await response.json();
 			console.log(data);
 			window.location.href = data;
 		}
-    }
+	}
 
 	async function handleSignIn(event: Event) {
 		event.preventDefault();
@@ -27,7 +28,7 @@
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({ "email": email, "password": password })
+			body: JSON.stringify({ email: email, password: password })
 		});
 
 		if (response.ok) {
@@ -42,13 +43,14 @@
 		event.preventDefault();
 		const email = (document.getElementById('email') as HTMLInputElement).value;
 		const password = (document.getElementById('password') as HTMLInputElement).value;
+		const fullname = (document.getElementById('fullname') as HTMLInputElement).value;
 
 		const response = await fetch(BACKEND_URL + '/auth/signup', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({ "email": email, "password": password })
+			body: JSON.stringify({ email: email, password: password, name: fullname })
 		});
 
 		if (response.ok) {
@@ -62,7 +64,7 @@
 
 <Card.Root>
 	<Card.Header class="space-y-1">
-		<Card.Title class="text-2xl text-center">Brainsmith Dashboard</Card.Title>
+		<Card.Title class="text-center text-2xl">Brainsmith Dashboard</Card.Title>
 		<Card.Description>Enter your email below to create your account</Card.Description>
 	</Card.Header>
 	<Card.Content class="grid gap-4">
@@ -75,7 +77,24 @@
 			<Input id="password" type="password" />
 		</div>
 		<Button class="w-full" onclick={handleSignIn}>Sign In</Button>
-		<Button class="w-full" variant="secondary" onclick={handleCreateAccount}>Create account</Button>
+		<Popover.Root>
+			<Popover.Trigger>
+				<Button class="w-full" variant="secondary">Create account</Button>
+			</Popover.Trigger>
+			<Popover.Content class="w-80">
+				<div class="grid gap-4">
+					<div class="space-y-2">
+						<h4 class="font-medium leading-none text-center">User Sign Up</h4>
+						<p class="text-muted-foreground text-sm text-center">Type in your name to start!</p>
+					</div>
+					<div class="grid gap-2">
+						<Input id="fullname" value="John Doe" class="w-full" />
+						<Button class="w-full" variant="secondary" onclick={handleCreateAccount}>Confirm</Button
+						>
+					</div>
+				</div>
+			</Popover.Content>
+		</Popover.Root>
 		<div class="relative">
 			<div class="absolute inset-0 flex items-center">
 				<!-- svelte-ignore element_invalid_self_closing_tag -->
