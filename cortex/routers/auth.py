@@ -2,7 +2,6 @@ import logging
 from typing import Optional
 from fastapi import  HTTPException,  APIRouter, Request, Depends, Cookie, Response
 from fastapi.responses import RedirectResponse, JSONResponse
-import starlette.status as status
 from sqlalchemy.orm import Session
 import time
 from jose import jwt
@@ -20,6 +19,7 @@ from cortex.admin.authenticate import (
 )
 from cortex.storage.session import get_db, User
 from cortex.models.users import UserResponse, UserCreate, LoginRequest
+import uuid
 
 
 router = APIRouter(prefix="/auth",  tags=["Authentication"])
@@ -38,11 +38,14 @@ def get_current_user(token: str = Cookie(None), db=Depends(get_db)) -> User:
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         user_id: int = payload.get("sub")
-        if user_id is None:
+        # Decode the user_uuid back to user.id (int)
+        decoded_user_id = uuid.UUID(user_id).int
+        print(f"Decoded user id: {decoded_user_id}")
+        if decoded_user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
     except PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
-    user: User = db.query(User).filter(User.id == user_id).first()
+    user: User = db.query(User).filter(User.id == decoded_user_id).first()
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
     # Optionally update the last_active_at timestamp
@@ -67,7 +70,9 @@ def login(login_data: LoginRequest, response: Response, db=Depends(get_db)):
     user.last_active_at = datetime.now(timezone.utc)
     db.commit()
 
-    access_token = create_access_token(data={"sub": user.id})
+    # Encode the user.id (int) to string uuid
+    user_uuid = str(uuid.UUID(int=user.id))
+    access_token = create_access_token(data={"sub": user_uuid})
     response.set_cookie(key="token", value=access_token, httponly=True)
     return user
 
@@ -97,6 +102,14 @@ def signup(user: UserCreate, response: Response, db: Session = Depends(get_db)):
     access_token = create_access_token(data={"sub": new_user.id})
     response.set_cookie(key="token", value=access_token, httponly=True)
     return new_user
+
+
+@router.get("/me", response_model=UserResponse)
+def userinfo(user: User = Depends(get_current_user)):
+    """
+    Return the current user's information.
+    """
+    return user
 
 
 # Oauth 2.0 flow (legacy, runable)
