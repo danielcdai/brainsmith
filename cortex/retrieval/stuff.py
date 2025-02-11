@@ -1,7 +1,7 @@
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
-from langchain_community.document_loaders import WebBaseLoader
+from langchain_community.document_loaders import WebBaseLoader, TextLoader
 from validators import url as validate_url
 from pydantic import BaseModel
 import os
@@ -45,7 +45,14 @@ def web_stuff_summarization(
         else ChatOpenAI(model=model, base_url=kwargs["openai_base"], api_key=openai_key)
     )
     chain = create_stuff_documents_chain(llm, prompt)
-    loader = WebBaseLoader(url)
+    if "enable_docling" in kwargs and kwargs["enable_docling"]:
+        from docling.document_converter import DocumentConverter
+        source = url
+        converter = DocumentConverter()
+        result = converter.convert(source)
+        loader = TextLoader(result.document.export_to_text())
+    else:
+        loader = WebBaseLoader(url)
     docs = loader.load()
     result = chain.invoke({"context": docs})
     return result
