@@ -45,14 +45,33 @@ def web_stuff_summarization(
         else ChatOpenAI(model=model, base_url=kwargs["openai_base"], api_key=openai_key)
     )
     chain = create_stuff_documents_chain(llm, prompt)
+    docs = []
     if "enable_docling" in kwargs and kwargs["enable_docling"]:
+        from langchain_docling import DoclingLoader
+        from docling.chunking import HybridChunker
         from docling.document_converter import DocumentConverter
-        source = url
-        converter = DocumentConverter()
-        result = converter.convert(source)
-        loader = TextLoader(result.document.export_to_text())
+        from langchain_docling.loader import ExportType
+        EXPORT_TYPE = ExportType.MARKDOWN
+        EMBED_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
+        loader = DoclingLoader(
+            file_path=url,
+            export_type=EXPORT_TYPE,
+            chunker=HybridChunker(tokenizer=EMBED_MODEL_ID),
+        )
+        from langchain_text_splitters import MarkdownHeaderTextSplitter
+
+        splitter = MarkdownHeaderTextSplitter(
+            headers_to_split_on=[
+                ("#", "Header_1"),
+                ("##", "Header_2"),
+                ("###", "Header_3"),
+            ],
+        )
+        docs = loader.load()
+        splits = [split for doc in docs for split in splitter.split_text(doc.page_content)]
     else:
         loader = WebBaseLoader(url)
-    docs = loader.load()
-    result = chain.invoke({"context": docs})
+        splits = loader.load_and_split()
+    print(f"Loaded {len(splits)} documents")
+    result = chain.invoke({"context": splits})
     return result
