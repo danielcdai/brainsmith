@@ -184,3 +184,4 @@ dump.rdb
 uploads/
 poetry.lock
 logs/
+temp_index/

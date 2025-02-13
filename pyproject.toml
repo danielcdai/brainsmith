@@ -34,6 +34,7 @@ email-validator = "^2.2.0"
 psycopg2-binary = "^2.9.10"
 docling = "^2.21.0"
 langchain-docling = "^0.2.0"
+faiss-cpu = "^1.10.0"
 
 
 [[tool.poetry.source]]
