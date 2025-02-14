@@ -5,7 +5,7 @@ import hashlib
 import numpy as np
 import faiss
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query, BackgroundTasks
 from cortex.config import settings
 
 
@@ -18,6 +18,11 @@ os.makedirs(settings.temp_index_folder, exist_ok=True)
 # ---------------------
 # Mapping from session_id to a list of file_ids
 session_files = {}
+
+
+# Mapping from file_id to progress status (e.g., "Received", "Saving file", "Building FAISS index", "Done", or error)
+progress_status = {}
+
 
 # ---------------------
 # Dummy embedding function
@@ -37,15 +42,67 @@ def get_embedding(text: str, dim: int = 128) -> np.ndarray:
 
 router = APIRouter(prefix="/files",  tags=["Files API"])
 
+
 # ---------------------
-# API 1: File Upload and Indexing
+# Background Task for Processing the Uploaded File
+# ---------------------
+def process_file(file_id: str, text: str, original_filename: str, session_id: str):
+    try:
+        # Update progress: Saving file (0.3)
+        progress_status[file_id] = {"status": "Saving file", "progress": 0.3}
+        upload_path = os.path.join(settings.upload_folder, file_id)
+        os.makedirs(upload_path, exist_ok=True)
+        file_path = os.path.join(upload_path, original_filename)
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(text)
+
+        # Update progress: Building FAISS index (0.7)
+        progress_status[file_id] = {"status": "Building FAISS index", "progress": 0.7}
+        index_folder = os.path.join(settings.temp_index_folder, file_id)
+        os.makedirs(index_folder, exist_ok=True)
+
+        # Split the file content into chunks (fixed-size chunks of 1000 characters)
+        chunk_size = 1000
+        chunks = [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
+        if not chunks:
+            raise Exception("File is empty after processing.")
+
+        # Compute embeddings for each chunk
+        embeddings = np.array([get_embedding(chunk) for chunk in chunks])
+        dim = embeddings.shape[1]
+
+        # Build a FAISS index (using L2 distance)
+        index = faiss.IndexFlatL2(dim)
+        index.add(embeddings)
+
+        # Save the FAISS index to disk
+        index_file = os.path.join(index_folder, "index.faiss")
+        faiss.write_index(index, index_file)
+
+        # Also, store the list of chunks so that we can later map an index result to its text.
+        chunks_file = os.path.join(index_folder, "chunks.json")
+        with open(chunks_file, "w", encoding="utf-8") as f:
+            json.dump(chunks, f)
+
+        # Update the session mapping
+        session_files.setdefault(session_id, []).append(file_id)
+
+        # Mark progress as complete (1.0)
+        progress_status[file_id] = {"status": "Done", "progress": 1.0}
+    except Exception as e:
+        progress_status[file_id] = {"status": f"Error: {str(e)}", "progress": 0.0}
+
+
+# ---------------------
+# API 1: Asynchronous File Upload and Indexing
 # ---------------------
 @router.post("/upload")
 async def upload_file(
+    background_tasks: BackgroundTasks,
     session_id: str = Form(...),
     file: UploadFile = File(...)
 ):
-    # Read the uploaded file
+    # Read the uploaded file asynchronously
     contents = await file.read()
     try:
         text = contents.decode("utf-8")
@@ -56,50 +113,27 @@ async def upload_file(
     hash_input = text + str(time.time())
     file_id = hashlib.sha256(hash_input.encode("utf-8")).hexdigest()[:16]
 
-    # Create a folder for this file under the upload directory
-    upload_path = os.path.join(settings.upload_folder, file_id)
-    os.makedirs(upload_path, exist_ok=True)
-    # Save the file (using the original filename)
-    file_path = os.path.join(upload_path, file.filename)
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(text)
+    # Initialize progress: "Received" with 0 progress
+    progress_status[file_id] = {"status": "Received", "progress": 0.0}
 
-    # ---------------------
-    # Build a FAISS index for the file
-    # ---------------------
-    # Create a folder for the FAISS index
-    index_folder = os.path.join(settings.temp_index_folder, file_id)
-    os.makedirs(index_folder, exist_ok=True)
+    # Trigger background processing
+    background_tasks.add_task(process_file, file_id, text, file.filename, session_id)
 
-    # Split the file content into chunks (here fixed size chunks of 1000 characters)
-    chunk_size = 1000
-    chunks = [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
-    if not chunks:
-        raise HTTPException(status_code=400, detail="File is empty after processing.")
+    # Build progress URL (assuming client can reach the same server address)
+    progress_url = f"/files/progress?file_id={file_id}"
+    return {"file_id": file_id, "progress_url": progress_url}
 
-    # Compute embeddings for each chunk
-    embeddings = np.array([get_embedding(chunk) for chunk in chunks])
-    dim = embeddings.shape[1]
 
-    # Build a FAISS index (using L2 distance)
-    index = faiss.IndexFlatL2(dim)
-    index.add(embeddings)
+# ---------------------
+# API: Get Upload & Embedding Progress by File ID
+# ---------------------
+@router.get("/progress")
+def get_progress(file_id: str = Query(..., description="File ID to check progress")):
+    progress = progress_status.get(file_id)
+    if progress is None:
+        raise HTTPException(status_code=404, detail="File ID not found.")
+    return {"file_id": file_id, "status": progress["status"], "progress": progress["progress"]}
 
-    # Save the FAISS index to disk
-    index_file = os.path.join(index_folder, "index.faiss")
-    faiss.write_index(index, index_file)
-
-    # Also, store the list of chunks so that we can later map an index result to its text.
-    chunks_file = os.path.join(index_folder, "chunks.json")
-    with open(chunks_file, "w", encoding="utf-8") as f:
-        json.dump(chunks, f)
-
-    # ---------------------
-    # Update the session mapping
-    # ---------------------
-    session_files.setdefault(session_id, []).append(file_id)
-
-    return {"file_id": file_id, "filename": file.filename}
 
 # ---------------------
 # API 2: Get Files List for a Session
@@ -137,7 +171,7 @@ def get_file_content(file_id: str):
 # ---------------------
 @router.get("/search")
 def search_chunks(
-    file_id: str = Query(..., description="The file id to search"),
+    file_id: str = Query(..., description="The file ID to search"),
     query: str = Query(..., description="Query text"),
     top_k: int = Query(5, description="Number of top chunks to return")
 ):
@@ -147,7 +181,10 @@ def search_chunks(
     chunks_file = os.path.join(index_folder, "chunks.json")
 
     if not os.path.exists(index_file) or not os.path.exists(chunks_file):
-        raise HTTPException(status_code=404, detail="FAISS index or chunk mapping not found for the given file_id.")
+        raise HTTPException(
+            status_code=404,
+            detail="FAISS index or chunk mapping not found for the given file ID."
+        )
 
     # Load the FAISS index
     index = faiss.read_index(index_file)
