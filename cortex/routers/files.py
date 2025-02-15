@@ -8,6 +8,13 @@ import faiss
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query, BackgroundTasks
 from cortex.config import settings
 
+from langchain_community.document_loaders import TextLoader
+from langchain_ollama import OllamaEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.docstore.in_memory import InMemoryDocstore
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from pydantic import BaseModel
+
 
 # Ensure directories exist
 os.makedirs(settings.upload_folder, exist_ok=True)
@@ -57,34 +64,42 @@ def process_file(file_id: str, text: str, original_filename: str, session_id: st
             f.write(text)
 
         # Update progress: Building FAISS index (0.7)
-        progress_status[file_id] = {"status": "Building FAISS index", "progress": 0.7}
         index_folder = os.path.join(settings.temp_index_folder, file_id)
         os.makedirs(index_folder, exist_ok=True)
 
         # Split the file content into chunks (fixed-size chunks of 1000 characters)
         chunk_size = 1000
-        chunks = [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+        )
+        loader = TextLoader(
+            file_path=file_path,
+            autodetect_encoding=True,
+        )
+        chunks = loader.load_and_split(text_splitter=splitter)
+        progress_status[file_id] = {"status": "Building FAISS index", "progress": 0.7}
+
         if not chunks:
             raise Exception("File is empty after processing.")
 
         # Compute embeddings for each chunk
-        embeddings = np.array([get_embedding(chunk) for chunk in chunks])
-        dim = embeddings.shape[1]
+        embeddings = OllamaEmbeddings(
+            base_url=settings.ollama_base_url,
+            model="nomic-embed-text:latest",
+        )
+        vector_store = FAISS.from_documents(documents=chunks, embedding=embeddings)
 
-        # Build a FAISS index (using L2 distance)
-        index = faiss.IndexFlatL2(dim)
-        index.add(embeddings)
-
-        # Save the FAISS index to disk
-        index_file = os.path.join(index_folder, "index.faiss")
-        faiss.write_index(index, index_file)
-
-        # Also, store the list of chunks so that we can later map an index result to its text.
-        chunks_file = os.path.join(index_folder, "chunks.json")
-        with open(chunks_file, "w", encoding="utf-8") as f:
-            json.dump(chunks, f)
-
-        # Update the session mapping
+        # vector_store = FAISS(
+        #     embedding_function=embeddings,
+        #     index=index,
+        #     docstore=InMemoryDocstore(),
+        #     index_to_docstore_id={},
+        # )
+        # for i, chunk in enumerate(chunks):
+        #     vector_store.aadd_documents([chunk])
+        #     # Update progress based on the number of chunks processed
+        #     progress_status[file_id] = {"status": "Adding documents to vector store", "progress": 0.7 + 0.2 * (i / len(chunks))}
+        vector_store.save_local(folder_path=index_folder)
         session_files.setdefault(session_id, []).append(file_id)
 
         # Mark progress as complete (1.0)
@@ -169,42 +184,43 @@ def get_file_content(file_id: str):
 # ---------------------
 # API 4: Get Relevant Chunks by Query
 # ---------------------
-@router.get("/search")
-def search_chunks(
-    file_id: str = Query(..., description="The file ID to search"),
-    query: str = Query(..., description="Query text"),
-    top_k: int = Query(5, description="Number of top chunks to return")
+class FileSearchRequest(BaseModel):
+    file_id: str
+    query: str
+    top_k: int = 5
+
+@router.post("/search")
+async def search_chunks(
+    request: FileSearchRequest
 ):
     # Locate the FAISS index folder for this file_id
+    file_id = request.file_id
+    query = request.query
+    top_k = request.top_k
+
     index_folder = os.path.join(settings.temp_index_folder, file_id)
     index_file = os.path.join(index_folder, "index.faiss")
-    chunks_file = os.path.join(index_folder, "chunks.json")
+    pkl_file = os.path.join(index_folder, "index.pkl")
 
-    if not os.path.exists(index_file) or not os.path.exists(chunks_file):
+    if not os.path.exists(index_file) or not os.path.exists(pkl_file):
         raise HTTPException(
             status_code=404,
             detail="FAISS index or chunk mapping not found for the given file ID."
         )
 
-    # Load the FAISS index
-    index = faiss.read_index(index_file)
-    # Load the chunks
-    with open(chunks_file, "r", encoding="utf-8") as f:
-        chunks = json.load(f)
-
-    # Compute the embedding for the query
-    query_embedding = get_embedding(query).reshape(1, -1)
-
-    # Search the index
-    distances, indices = index.search(query_embedding, top_k)
-    indices = indices[0].tolist()
-    distances = distances[0].tolist()
-
-    # Map the index results back to chunks and scores
-    results = []
-    for idx, score in zip(indices, distances):
-        if idx < len(chunks):
-            results.append({"chunk": chunks[idx], "score": score})
+    embeddings = OllamaEmbeddings(
+        base_url=settings.ollama_base_url,
+        model="nomic-embed-text:latest",
+    )
+    vector_store = FAISS.load_local(
+        index_folder, embeddings, allow_dangerous_deserialization=True
+    )
+    print(f"Loaded FAISS index for file ID: {index_folder}")
+    results = vector_store.similarity_search(
+        query=query,
+        k=top_k,
+        search_type="mmr"
+    )
+    print(results)
 
     return {"file_id": file_id, "query": query, "results": results}
-
