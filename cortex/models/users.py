@@ -80,4 +80,4 @@ class UserResponse(BaseModel):
     oauth_sub: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
